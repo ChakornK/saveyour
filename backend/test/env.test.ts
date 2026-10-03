@@ -11,6 +11,7 @@ describe('loadConfig', () => {
       mongoUri: 'mongodb://127.0.0.1:27017',
       mongoDatabase: 'saveyour-tech',
       workerConcurrency: 2,
+      redisUrl: undefined,
       searchIndex: 'saveyour-posts',
       geminiModel: 'gemini-2.0-flash',
       geminiTimeoutMs: 10000,
