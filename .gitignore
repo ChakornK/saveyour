@@ -1,0 +1,10 @@
+backend/node_modules/
+backend/.env
+backend/dist/
+app/.dart_tool/
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/.idea/
+app/*.iml
+app/linux/flutter/ephemeral/
