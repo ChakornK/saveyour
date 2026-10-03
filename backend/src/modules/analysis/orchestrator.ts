@@ -1,6 +1,7 @@
 import { analysisStages, createStageStates, stageKey, type AnalysisJob, type AnalysisReason, type AnalysisStage, type SafeError } from './contracts'
 import type { AnalysisRepository } from './repository'
 import type { DerivedPostStore, EventPublisher } from './events'
+import type { AnalysisQueuePublisher } from './queue-publisher'
 
 export interface StageHandler {
   run(job: AnalysisJob, stage: AnalysisStage): Promise<void>
@@ -10,7 +11,7 @@ const isRetryable = (error: unknown): boolean => error instanceof Error && error
 const safeError = (error: unknown, retryable: boolean): SafeError => ({ code: error instanceof Error && error.name === 'PermanentError' ? 'PERMANENT_ERROR' : 'STAGE_ERROR', message: error instanceof Error ? error.message : 'Analysis stage failed', retryable })
 
 export class AnalysisOrchestrator {
-  constructor(private readonly repository: AnalysisRepository, private readonly handler: StageHandler, private readonly maxAttempts = 3, private readonly publisher?: EventPublisher) {}
+  constructor(private readonly repository: AnalysisRepository, private readonly handler: StageHandler, private readonly maxAttempts = 3, private readonly publisher?: EventPublisher, private readonly queuePublisher?: AnalysisQueuePublisher) {}
 
   async enqueue(postId: string, ownerId: string, version: number, reason: AnalysisReason = 'accepted') {
     const key = `${postId}:${version}`
@@ -19,6 +20,7 @@ export class AnalysisOrchestrator {
     const now = new Date().toISOString()
     const job = await this.repository.save({ id: crypto.randomUUID(), postId, ownerId, postVersion: version, reason, status: 'queued', stages: createStageStates(now), idempotencyKey: key, createdAt: now, updatedAt: now })
     if (this.publisher) await this.publisher.publish({ type: 'analysis.requested', version: 1, job })
+    if (this.queuePublisher) await this.queuePublisher.publish(job)
     return job
   }
 
@@ -46,6 +48,7 @@ export class AnalysisOrchestrator {
     updated.status = failed ? (states.some((state) => state.status === 'completed') ? 'partial' : 'failed') : pending ? 'processing' : 'completed'
     const saved = await this.repository.save(updated)
     if (this.publisher) await this.publisher.publish({ type: 'analysis.updated', version: 1, job: saved })
+    if (this.queuePublisher && saved.status === 'queued' && states.some((state) => state.status === 'retryable')) await this.queuePublisher.publish(saved)
     return saved
   }
 
