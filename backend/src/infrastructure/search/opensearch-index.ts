@@ -22,9 +22,9 @@ export class OpenSearchIndex implements SearchIndex {
     if (request.filters?.platform) filters.push({ term: { platform: request.filters.platform } })
     if (request.filters?.analysisStatus) filters.push({ term: { analysisStatus: request.filters.analysisStatus } })
     if (request.filters?.mediaType) filters.push({ term: { mediaKinds: request.filters.mediaType } })
-    const body = { size: Math.min(request.limit ?? 20, 100), query: { bool: { must: request.rawQuery ? [{ multi_match: { query: request.rawQuery, fields: ['text', 'tags'] } }] : [{ match_all: {} }], filter: filters } } }
-    const result = await this.request<{ hits?: { hits?: Array<{ _score?: number; _source: SearchDocument; highlight?: Record<string, string[]> }> } }>('/_search', { method: 'POST', body: JSON.stringify(body) })
-    return (result.hits?.hits ?? []).map((hit): RawSearchHit => ({ document: hit._source, score: hit._score ?? 0, matchedFields: Object.keys(hit.highlight ?? {}) }))
+    const body = { size: Math.min(request.limit ?? 20, 100), search_after: request.cursor ? [request.cursor] : undefined, sort: [{ _score: 'desc' }, { 'documentId.keyword': 'asc' }], query: { bool: { must: request.rawQuery ? [{ multi_match: { query: request.rawQuery, fields: ['text', 'tags'] } }] : [{ match_all: {} }], filter: filters, ...(request.vector ? { should: [{ knn: { embedding: { vector: request.vector, k: Math.min(request.limit ?? 20, 100) } } }] } : {}) } } }
+    const result = await this.request<{ hits?: { hits?: Array<{ _score?: number; sort?: Array<string | number>; _source: SearchDocument; highlight?: Record<string, string[]> }> } }>('/_search', { method: 'POST', body: JSON.stringify(body) })
+    return (result.hits?.hits ?? []).map((hit): RawSearchHit => ({ document: hit._source, score: hit._score ?? 0, sortKey: String(hit.sort?.[1] ?? hit.sort?.[0] ?? hit._source.documentId), matchedFields: Object.keys(hit.highlight ?? {}) }))
   }
   async rebuild(documents: AsyncIterable<SearchDocument>) { let count = 0; for await (const document of documents) { await this.upsert(document); count += 1 }; return count }
   async health() { try { await fetch(`${this.config.url}/_cluster/health`); return { status: 'healthy' as const } } catch (error) { return { status: 'unhealthy' as const, details: error instanceof Error ? error.message : 'Search unavailable' } } }

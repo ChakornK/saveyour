@@ -16,6 +16,7 @@ export interface ScopedSearchRequest {
   filters?: SearchFilters
   cursor?: string
   limit?: number
+  vector?: number[]
 }
 
 export interface RawSearchHit {
@@ -29,6 +30,7 @@ export interface SearchResult {
   score: number
   matchedFields: string[]
   explanation?: string
+  sortKey?: string
 }
 
 export interface SearchResponse {
