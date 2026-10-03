@@ -45,9 +45,11 @@ export default function Home() {
           Break free from the algorithm and curate a collection of social media
           posts that you genuinely care about
         </h2>
-        <Button className="mt-3 h-12 px-8 text-lg">
-          Get Started <ArrowRightFilled />
-        </Button>
+        <a href="https://app.saveyour.tech">
+          <Button className="mt-3 h-12 px-8 text-lg">
+            Get Started <ArrowRightFilled />
+          </Button>
+        </a>
       </section>
 
       <section className="mx-auto w-full max-w-5xl">
