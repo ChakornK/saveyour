@@ -6,9 +6,24 @@ import { healthRoutes } from './modules/health/routes'
 import { InMemorySearchIndex } from './modules/search/in-memory-index'
 import { SearchService } from './modules/search/service'
 import { searchRoutes } from './modules/search/routes'
+import { InMemoryAnalysisRepository } from './modules/analysis/repository'
+import { AnalysisOrchestrator } from './modules/analysis/orchestrator'
+import { FakeAiProvider } from './modules/analysis/provider'
+import { InMemoryPostSource, AnalysisPipeline } from './modules/analysis/pipeline'
+import { InMemoryDerivedPostStore } from './modules/analysis/events'
+import { InMemoryAnalysisMetrics } from './modules/analysis/observability'
+import { analysisRoutes } from './modules/analysis/routes'
+import { TagSuggestionService } from './modules/search/suggestions'
 
-export const createApp = (config: AppConfig) =>
-  new Elysia({ name: 'saveyour-tech-api' })
+export const createApp = (config: AppConfig) => {
+  const repository = new InMemoryAnalysisRepository()
+  const derivedStore = new InMemoryDerivedPostStore()
+  const source = new InMemoryPostSource()
+  const metrics = new InMemoryAnalysisMetrics()
+  const orchestrator = new AnalysisOrchestrator(repository, new AnalysisPipeline(source, derivedStore, new FakeAiProvider()), 3)
+  const searchIndex = new InMemorySearchIndex()
+  const searchService = new SearchService(searchIndex)
+  return new Elysia({ name: 'saveyour-tech-api' })
     .use(openapi({ documentation: { info: { title: 'saveyour.tech API', version: '0.1.0' } } }))
     .use(cors({ origin: config.corsOrigins.length === 0 ? true : config.corsOrigins }))
     .onError(({ code, error, set }) => {
@@ -23,5 +38,7 @@ export const createApp = (config: AppConfig) =>
       }
     })
     .use(healthRoutes)
-    .use(searchRoutes(new SearchService(new InMemorySearchIndex())))
+    .use(analysisRoutes(orchestrator, repository, metrics))
+    .use(searchRoutes(searchService, new TagSuggestionService(derivedStore)))
     .get('/', () => ({ name: 'saveyour.tech API', status: 'ok' as const, version: '0.1.0' }))
+}
