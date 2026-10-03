@@ -14,31 +14,34 @@ import { InMemoryDerivedPostStore } from './modules/analysis/events'
 import { InMemoryAnalysisMetrics } from './modules/analysis/observability'
 import { analysisRoutes } from './modules/analysis/routes'
 import { TagSuggestionService } from './modules/search/suggestions'
+import { MongoDatabase } from './infrastructure/mongo/client'
+import { MongoAnalysisRepository } from './infrastructure/mongo/analysis-repository'
+import { MongoDerivedPostStore } from './infrastructure/mongo/derived-post-store'
+import { MongoPostSource } from './infrastructure/mongo/post-source'
+import { MongoOutbox } from './infrastructure/mongo/outbox'
+import { OpenSearchIndex } from './infrastructure/search/opensearch-index'
+import { SearchEventDelivery } from './infrastructure/search/event-index-delivery'
+import { GeminiProvider } from './infrastructure/ai/gemini-provider'
 
 export const createApp = (config: AppConfig) => {
-  const repository = new InMemoryAnalysisRepository()
-  const derivedStore = new InMemoryDerivedPostStore()
-  const source = new InMemoryPostSource()
-  const metrics = new InMemoryAnalysisMetrics()
-  const orchestrator = new AnalysisOrchestrator(repository, new AnalysisPipeline(source, derivedStore, new FakeAiProvider()), 3)
-  const searchIndex = new InMemorySearchIndex()
+  const useProduction = config.appEnv === 'production'
+  const mongo = useProduction ? new MongoDatabase({ uri: config.mongoUri, database: config.mongoDatabase }) : undefined
+  const repository = useProduction ? new MongoAnalysisRepository(mongo!) : new InMemoryAnalysisRepository()
+  const derivedStore = useProduction ? new MongoDerivedPostStore(mongo!) : new InMemoryDerivedPostStore()
+  const source = useProduction ? new MongoPostSource(mongo!) : new InMemoryPostSource()
+  const searchIndex = useProduction && config.searchUrl ? new OpenSearchIndex({ url: config.searchUrl, index: config.searchIndex, apiKey: config.searchApiKey }) : new InMemorySearchIndex()
   const searchService = new SearchService(searchIndex)
-  return new Elysia({ name: 'saveyour-tech-api' })
+  const metrics = new InMemoryAnalysisMetrics()
+  const provider = useProduction && config.geminiApiKey ? new GeminiProvider({ apiKey: config.geminiApiKey, model: config.geminiModel, timeoutMs: config.geminiTimeoutMs, maxAttempts: config.geminiMaxAttempts }) : new FakeAiProvider()
+  const pipeline = new AnalysisPipeline(source, derivedStore, provider)
+  const orchestrator = new AnalysisOrchestrator(repository, pipeline, 3)
+  const app = new Elysia({ name: 'saveyour-tech-api' })
     .use(openapi({ documentation: { info: { title: 'saveyour.tech API', version: '0.1.0' } } }))
     .use(cors({ origin: config.corsOrigins.length === 0 ? true : config.corsOrigins }))
-    .onError(({ code, error, set }) => {
-      const requestId = crypto.randomUUID()
-      set.status = code === 'NOT_FOUND' ? 404 : 500
-      const detail = error instanceof Error ? error.message : undefined
-      return {
-        code: code === 'NOT_FOUND' ? 'NOT_FOUND' : 'INTERNAL_ERROR',
-        message: code === 'NOT_FOUND' ? 'Route not found' : 'An unexpected error occurred',
-        requestId,
-        ...(config.appEnv === 'development' && detail ? { detail } : {})
-      }
-    })
+    .onError(({ code, error, set }) => { const requestId = crypto.randomUUID(); set.status = code === 'NOT_FOUND' ? 404 : 500; const detail = error instanceof Error ? error.message : undefined; return { code: code === 'NOT_FOUND' ? 'NOT_FOUND' : 'INTERNAL_ERROR', message: code === 'NOT_FOUND' ? 'Route not found' : 'An unexpected error occurred', requestId, ...(config.appEnv === 'development' && detail ? { detail } : {}) } })
     .use(healthRoutes)
     .use(analysisRoutes(orchestrator, repository, metrics))
     .use(searchRoutes(searchService, new TagSuggestionService(derivedStore)))
     .get('/', () => ({ name: 'saveyour.tech API', status: 'ok' as const, version: '0.1.0' }))
+  return app
 }
