@@ -4,7 +4,8 @@ import type { AcceptedPost, PostSource } from '../analysis/pipeline'
 import { ownerScope } from '../auth/owner-scope'
 
 export const captureRoutes = (source: PostSource, orchestrator: AnalysisOrchestrator) => new Elysia({ prefix: '/v1/posts' }).use(ownerScope)
-  .post('/', async ({ body, ownerId }) => {
+  .post('/', async ({ body, headers }) => {
+    const ownerId = headers['x-owner-id'] as string
     const post: AcceptedPost = { postId: body.postId, ownerId, version: body.version, sourceText: body.sourceText, platform: body.platform, albumIds: body.albumIds, capturedAt: body.capturedAt, mediaKinds: body.mediaKinds }
     if (!source.save) throw new Error('Post source is read-only')
     await source.save(post)
