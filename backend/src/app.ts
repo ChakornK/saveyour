@@ -26,6 +26,16 @@ import { GeminiProvider } from './infrastructure/ai/gemini-provider'
 export const createApp = (config: AppConfig) => {
   const useProduction = config.appEnv === 'production'
   const mongo = useProduction ? new MongoDatabase({ uri: config.mongoUri, database: config.mongoDatabase }) : undefined
+  const initialize = async () => {
+    if (!mongo) return
+    await mongo.connect()
+    await Promise.all([
+      new MongoAnalysisRepository(mongo).ensureIndexes(),
+      new MongoDerivedPostStore(mongo).ensureIndexes(),
+      new MongoPostSource(mongo).ensureIndexes(),
+      new MongoOutbox(mongo).ensureIndexes()
+    ])
+  }
   const repository = useProduction ? new MongoAnalysisRepository(mongo!) : new InMemoryAnalysisRepository()
   const derivedStore = useProduction ? new MongoDerivedPostStore(mongo!) : new InMemoryDerivedPostStore()
   const source = useProduction ? new MongoPostSource(mongo!) : new InMemoryPostSource()
@@ -43,5 +53,5 @@ export const createApp = (config: AppConfig) => {
     .use(analysisRoutes(orchestrator, repository, metrics))
     .use(searchRoutes(searchService, new TagSuggestionService(derivedStore)))
     .get('/', () => ({ name: 'saveyour.tech API', status: 'ok' as const, version: '0.1.0' }))
-  return app
+  return Object.assign(app, { initialize, close: async () => mongo?.close() })
 }
