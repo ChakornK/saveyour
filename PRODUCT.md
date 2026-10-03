@@ -35,7 +35,7 @@ Users primarily save posts opportunistically while browsing social platforms, th
 
 ## Brand Commitments
 
-- Neobrutalist monochromatic emerald visual language.
+- Neobrutalism.dev-inspired monochromatic emerald visual language.
 - Bold, playful, high-contrast UI with bouncy but purposeful motion.
 - Mingcute filled icons imported as SVG assets for Flutter where applicable.
 - Required visual tokens are supplied in the feature brief and must be preserved as the source palette.

@@ -1,0 +1,23 @@
+{
+  "name": "saveyour-tech-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "format": "prettier --write src test"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "latest",
+    "@elysiajs/openapi": "latest",
+    "elysia": "latest"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "prettier": "latest",
+    "typescript": "latest"
+  }
+}

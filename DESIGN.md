@@ -1,8 +1,8 @@
-# Saved Posts Memory — Visual Design System
+# saveyour.tech — Visual Design System
 
 ## Product world
 
-Saved Posts Memory is a personal archive that turns fleeting social discoveries into a tangible, searchable collection. The interface uses a strict neobrutalist emerald world: bright mint workspace, white paper-like surfaces, solid black borders, hard offset shadows, bold typography, and small moments of emerald or chart color reserved for meaning. It is playful and expressive, but the archive remains calm enough for long browsing sessions.
+Saved Posts Memory is a personal archive that turns fleeting social discoveries into a tangible, searchable collection. The interface follows the neobrutalism.dev design language: a strict neobrutalist emerald world with bright mint workspace, white paper-like surfaces, solid black borders, hard offset shadows, bold typography, and small moments of emerald or chart color reserved for meaning. The implementation should use neobrutalism.dev as the visual reference for component proportions, stark contrast, playful utility, and tactile interaction—not as a source for copied product code or content. It is playful and expressive, but the archive remains calm enough for long browsing sessions.
 
 ## Visual contract
 

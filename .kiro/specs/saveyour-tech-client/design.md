@@ -2,7 +2,7 @@
 
 ## Overview
 
-The saveyour.tech client uses Flutter for iOS, Android, and responsive web so visual rendering, motion, semantics, and interaction behavior share one implementation. Platform adaptation is handled by width, input capability, safe areas, keyboard presence, and navigation conventions rather than by duplicating feature screens.
+The saveyour.tech client uses Flutter for iOS, Android, and responsive web so visual rendering, motion, semantics, and interaction behavior share one implementation. Its visual reference is neobrutalism.dev: bold contrast, tactile bordered surfaces, hard shadows, playful utility, and direct interaction feedback, adapted into saveyour.tech's emerald palette and content model. Platform adaptation is handled by width, input capability, safe areas, keyboard presence, and navigation conventions rather than by duplicating feature screens.
 
 The client is contract-first. Generated OpenAPI types and repository interfaces are the only data boundary. Every feature has mock repositories and fixture states so this workstream can be developed and tested independently of backend completion.
 

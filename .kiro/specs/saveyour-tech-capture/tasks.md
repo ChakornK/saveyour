@@ -6,7 +6,7 @@ Person 2 owns `server/api` authentication, capture, posts, media, and health mod
 
 ## Tasks
 
-- [ ] 1. Bootstrap API service
+- [x] 1. Bootstrap API service
   - Create runtime, configuration validation, HTTP bootstrap, request IDs, structured logs, metrics, health, graceful shutdown, and error middleware.
   - Add MongoDB connection lifecycle, repository interfaces, transaction helper, test database fixture, and repeatable index initialization.
   - _Requirements: 5.1, 5.2, 5.6_

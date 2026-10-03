@@ -34,7 +34,7 @@ This specification covers the adaptive Flutter client and neobrutalist design sy
 
 #### Acceptance Criteria
 
-1. THE Design_System SHALL use the supplied emerald palette, black borders, white secondary surfaces, 4px hard shadows, 5px base radius, and bold heading roles.
+1. THE Design_System SHALL use the supplied emerald palette and the neobrutalism.dev-inspired visual language: black borders, white secondary surfaces, 4px hard shadows, 5px base radius, and bold heading roles.
 2. THE Design_System SHALL provide shared button, icon button, card, text field, chip, badge, sheet, dialog, skeleton, empty, error, loading, selection-bar, and external-link primitives.
 3. WHEN a control is pressed, THE Client SHALL translate the control by a bounded amount and reduce the shadow without changing surrounding layout.
 4. WHEN reduced motion is enabled, THE Client SHALL replace bounce transitions with opacity or immediate state changes.

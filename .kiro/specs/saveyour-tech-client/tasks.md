@@ -6,7 +6,7 @@ Person 1 owns the entire Flutter client and design system in `client/`. The clie
 
 ## Tasks
 
-- [ ] 1. Initialize Flutter client foundation
+- [x] 1. Initialize Flutter client foundation
   - Create `client/pubspec.yaml`, platform bootstrap, environment flavors, test bootstrap, and generated-client setup.
   - Configure API origin, OAuth IDs, public-link origin, feature flags, and build modes.
   - Register mobile share intents and web deep links.
