@@ -9,5 +9,8 @@ export class RedisClientAdapter implements RedisLike {
   async rPop(key: string) { return this.client.rPop(key) }
   async set(key: string, value: string, options?: { EX: number; NX?: boolean }) { return this.client.set(key, value, options) }
   async del(key: string) { return this.client.del(key) }
+  async zAdd(key: string, item: { score: number; value: string }) { return this.client.zAdd(key, item) }
+  async zRangeByScore(key: string, min: number, max: number) { return this.client.zRangeByScore(key, min, max) }
+  async zRem(key: string, value: string) { return this.client.zRem(key, value) }
   async close() { await this.client.quit() }
 }

@@ -2,9 +2,10 @@ import type { AnalysisJob } from './contracts'
 import type { AnalysisRepository } from './repository'
 
 export interface JobQueue {
-  enqueue(jobId: string): Promise<void>
+  enqueue(jobId: string, delayMs?: number): Promise<void>
   claim(): Promise<AnalysisJob | undefined>
   acknowledge(jobId: string): Promise<void>
+  recoverExpired?(): Promise<number>
 }
 
 export class InMemoryJobQueue implements JobQueue {
@@ -13,7 +14,8 @@ export class InMemoryJobQueue implements JobQueue {
 
   constructor(private readonly repository: AnalysisRepository) {}
 
-  async enqueue(jobId: string) {
+  async enqueue(jobId: string, delayMs = 0) {
+    if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs))
     if (!this.pending.includes(jobId) && !this.leased.has(jobId)) this.pending.push(jobId)
   }
 
@@ -27,6 +29,8 @@ export class InMemoryJobQueue implements JobQueue {
   async acknowledge(jobId: string) {
     this.leased.delete(jobId)
   }
+
+  async recoverExpired() { return 0 }
 
   get depth() {
     return this.pending.length
