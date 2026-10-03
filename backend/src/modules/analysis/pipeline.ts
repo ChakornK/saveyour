@@ -2,6 +2,9 @@ import type { AnalysisJob, AnalysisStage, SearchDocument } from './contracts'
 import type { AiProvider } from './provider'
 import type { DerivedPostStore, EventPublisher } from './events'
 import type { StageHandler } from './orchestrator'
+import type { MediaProcessor } from './media'
+
+export interface MediaInput { bytes: Uint8Array; mimeType: string; durationMs?: number }
 
 export interface AcceptedPost {
   postId: string
@@ -12,6 +15,7 @@ export interface AcceptedPost {
   albumIds?: string[]
   capturedAt?: string
   mediaKinds?: string[]
+  media?: MediaInput[]
 }
 
 export interface PostSource {
@@ -25,7 +29,7 @@ export class InMemoryPostSource implements PostSource {
 }
 
 export class AnalysisPipeline implements StageHandler {
-  constructor(private readonly source: PostSource, private readonly derived: DerivedPostStore, private readonly ai: AiProvider, private readonly publisher?: EventPublisher) {}
+  constructor(private readonly source: PostSource, private readonly derived: DerivedPostStore, private readonly ai: AiProvider, private readonly publisher?: EventPublisher, private readonly media?: MediaProcessor) {}
 
   async run(job: AnalysisJob, stage: AnalysisStage) {
     const source = await this.source.get(job.postId, job.postVersion)
@@ -34,6 +38,12 @@ export class AnalysisPipeline implements StageHandler {
       postId: source.postId, ownerId: source.ownerId, version: source.version, sourceText: source.sourceText,
       tags: [], albumIds: source.albumIds ?? [], mediaKinds: source.mediaKinds ?? [], platform: source.platform,
       capturedAt: source.capturedAt, status: 'processing' as const, completedStages: [], updatedAt: new Date().toISOString()
+    }
+    if (stage === 'extract' && this.media) {
+      for (const asset of source.media ?? []) await this.media.extractFrames(asset)
+    }
+    if (stage === 'transcribe' && this.media) {
+      for (const asset of source.media ?? []) await this.media.extractAudio(asset)
     }
     if (stage === 'describe' || stage === 'normalize') {
       const result = await this.ai.describeImage({ content: source.sourceText })
