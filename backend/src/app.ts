@@ -25,25 +25,28 @@ import { GeminiProvider } from './infrastructure/ai/gemini-provider'
 import { InMemoryJobQueue } from './modules/analysis/queue'
 import { QueuePublisher } from './modules/analysis/queue-publisher'
 import { captureRoutes } from './modules/capture/routes'
+import { initializeSearchIndex } from './infrastructure/search/index-init'
 
 export const createApp = (config: AppConfig) => {
   const useProduction = config.appEnv === 'production'
   const mongo = useProduction ? new MongoDatabase({ uri: config.mongoUri, database: config.mongoDatabase }) : undefined
-  const initialize = async () => {
-    if (!mongo) return
-    await mongo.connect()
-    await Promise.all([
-      new MongoAnalysisRepository(mongo).ensureIndexes(),
-      new MongoDerivedPostStore(mongo).ensureIndexes(),
-      new MongoPostSource(mongo).ensureIndexes(),
-      new MongoOutbox(mongo).ensureIndexes()
-    ])
-  }
   const repository = useProduction ? new MongoAnalysisRepository(mongo!) : new InMemoryAnalysisRepository()
   const derivedStore = useProduction ? new MongoDerivedPostStore(mongo!) : new InMemoryDerivedPostStore()
   const source = useProduction ? new MongoPostSource(mongo!) : new InMemoryPostSource()
   const searchIndex = useProduction && config.searchUrl ? new OpenSearchIndex({ url: config.searchUrl, index: config.searchIndex, apiKey: config.searchApiKey }) : new InMemorySearchIndex()
   const searchService = new SearchService(searchIndex)
+  const initialize = async () => {
+    if (mongo) {
+      await mongo.connect()
+      await Promise.all([
+        new MongoAnalysisRepository(mongo).ensureIndexes(),
+        new MongoDerivedPostStore(mongo).ensureIndexes(),
+        new MongoPostSource(mongo).ensureIndexes(),
+        new MongoOutbox(mongo).ensureIndexes()
+      ])
+    }
+    await initializeSearchIndex(searchIndex)
+  }
   const metrics = new InMemoryAnalysisMetrics()
   const provider = useProduction && config.geminiApiKey ? new GeminiProvider({ apiKey: config.geminiApiKey, model: config.geminiModel, timeoutMs: config.geminiTimeoutMs, maxAttempts: config.geminiMaxAttempts }) : new FakeAiProvider()
   const pipeline = new AnalysisPipeline(source, derivedStore, provider)
