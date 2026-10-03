@@ -8,4 +8,3 @@ export const healthRoutes = (config?: AppConfig, mongo?: MongoDatabase) => new E
     if (!mongo) return { status: 'ready' as const, dependencies: { database: 'in-memory' as const } }
     try { await mongo.ping(); return { status: 'ready' as const, dependencies: { database: 'healthy' as const } } } catch (error) { set.status = 503; return { status: 'not-ready' as const, dependencies: { database: 'unhealthy' as const }, detail: config?.appEnv === 'development' && error instanceof Error ? error.message : undefined } }
   })
-}
