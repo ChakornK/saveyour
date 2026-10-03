@@ -22,6 +22,7 @@ import { MongoOutbox } from './infrastructure/mongo/outbox'
 import { OpenSearchIndex } from './infrastructure/search/opensearch-index'
 import { SearchEventDelivery } from './infrastructure/search/event-index-delivery'
 import { GeminiProvider } from './infrastructure/ai/gemini-provider'
+import { captureRoutes } from './modules/capture/routes'
 
 export const createApp = (config: AppConfig) => {
   const useProduction = config.appEnv === 'production'
@@ -51,6 +52,7 @@ export const createApp = (config: AppConfig) => {
     .onError(({ code, error, set }) => { const requestId = crypto.randomUUID(); set.status = code === 'NOT_FOUND' ? 404 : 500; const detail = error instanceof Error ? error.message : undefined; return { code: code === 'NOT_FOUND' ? 'NOT_FOUND' : 'INTERNAL_ERROR', message: code === 'NOT_FOUND' ? 'Route not found' : 'An unexpected error occurred', requestId, ...(config.appEnv === 'development' && detail ? { detail } : {}) } })
     .use(healthRoutes(config, mongo))
     .use(analysisRoutes(orchestrator, repository, metrics))
+    .use(captureRoutes(source as InMemoryPostSource, orchestrator))
     .use(searchRoutes(searchService, new TagSuggestionService(derivedStore)))
     .get('/', () => ({ name: 'saveyour.tech API', status: 'ok' as const, version: '0.1.0' }))
   return Object.assign(app, { initialize, close: async () => mongo?.close() })

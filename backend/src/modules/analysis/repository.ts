@@ -5,6 +5,7 @@ export interface AnalysisRepository {
   get(id: string): Promise<AnalysisJob | undefined>
   findByKey(key: string): Promise<AnalysisJob | undefined>
   updateStage(id: string, stage: AnalysisStage, state: StageState): Promise<AnalysisJob>
+  listLeased?(): Promise<AnalysisJob[]>
 }
 
 export class InMemoryAnalysisRepository implements AnalysisRepository {
