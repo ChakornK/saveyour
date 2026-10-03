@@ -16,12 +16,13 @@ export class SearchRebuilder {
   constructor(private readonly store: DerivedPostStore, private readonly index: SearchIndex, private readonly publisher?: EventPublisher) {}
 
   async rebuild(ownerId?: string) {
+    const store = this.store
     const documents = (async function* () {
-      for (const post of await this.store.list(ownerId)) {
+      for (const post of await store.list(ownerId)) {
         const document = documentFromDerived(post)
         if (document) yield document
       }
-    }).call(this)
+    })()
     return this.index.rebuild(documents)
   }
 
