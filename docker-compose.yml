@@ -1,0 +1,21 @@
+services:
+  mongodb:
+    image: mongo:8
+    container_name: saveyour-tech-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: saveyour
+      MONGO_INITDB_ROOT_PASSWORD: change-this-password
+      MONGO_INITDB_DATABASE: saveyour-tech
+    volumes:
+      - saveyour-tech-mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand({ ping: 1 })"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  saveyour-tech-mongo-data:
