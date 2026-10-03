@@ -5,6 +5,9 @@ export interface AppConfig {
   host: string
   port: number
   corsOrigins: string[]
+  mongoUri: string
+  mongoDatabase: string
+  workerConcurrency: number
 }
 
 const parseEnvironment = (value: string | undefined): AppEnvironment => {
@@ -14,14 +17,12 @@ const parseEnvironment = (value: string | undefined): AppEnvironment => {
 
 export const loadConfig = (env: Record<string, string | undefined> = Bun.env): AppConfig => {
   const port = Number(env.PORT ?? 3000)
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error('PORT must be an integer between 1 and 65535')
-  }
-
-  return {
-    appEnv: parseEnvironment(env.APP_ENV),
-    host: env.HOST ?? '0.0.0.0',
-    port,
-    corsOrigins: (env.CORS_ORIGINS ?? '').split(',').map((origin) => origin.trim()).filter(Boolean)
-  }
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be an integer between 1 and 65535')
+  const workerConcurrency = Number(env.WORKER_CONCURRENCY ?? 2)
+  if (!Number.isInteger(workerConcurrency) || workerConcurrency < 1 || workerConcurrency > 100) throw new Error('WORKER_CONCURRENCY must be an integer between 1 and 100')
+  const appEnv = parseEnvironment(env.APP_ENV)
+  const mongoUri = env.MONGO_URI ?? 'mongodb://127.0.0.1:27017'
+  const mongoDatabase = env.MONGO_DATABASE ?? 'saveyour-tech'
+  if (appEnv === 'production' && (!env.MONGO_URI || !env.MONGO_DATABASE)) throw new Error('MONGO_URI and MONGO_DATABASE are required in production')
+  return { appEnv, host: env.HOST ?? '0.0.0.0', port, corsOrigins: (env.CORS_ORIGINS ?? '').split(',').map((origin) => origin.trim()).filter(Boolean), mongoUri, mongoDatabase, workerConcurrency }
 }

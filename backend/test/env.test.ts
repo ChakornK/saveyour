@@ -7,7 +7,10 @@ describe('loadConfig', () => {
       appEnv: 'development',
       host: '0.0.0.0',
       port: 3000,
-      corsOrigins: []
+      corsOrigins: [],
+      mongoUri: 'mongodb://127.0.0.1:27017',
+      mongoDatabase: 'saveyour-tech',
+      workerConcurrency: 2
     })
   })
 
