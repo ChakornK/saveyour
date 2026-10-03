@@ -1,0 +1,21 @@
+import type { Collection } from 'mongodb'
+import type { AnalysisJob, AnalysisStage, StageState } from '../../modules/analysis/contracts'
+import type { AnalysisRepository } from '../../modules/analysis/repository'
+import type { MongoDatabase } from './client'
+
+export class MongoAnalysisRepository implements AnalysisRepository {
+  private collection?: Collection<AnalysisJob>
+  constructor(private readonly mongo: MongoDatabase) {}
+
+  private get jobs() { return this.collection ??= this.mongo.db().collection<AnalysisJob>('analysis_jobs') }
+
+  async ensureIndexes() { await this.jobs.createIndex({ idempotencyKey: 1 }, { unique: true }); await this.jobs.createIndex({ status: 1, updatedAt: 1 }) }
+  async save(job: AnalysisJob) { await this.jobs.replaceOne({ idempotencyKey: job.idempotencyKey }, job, { upsert: true }); return structuredClone(job) }
+  async get(id: string) { const job = await this.jobs.findOne({ id }); return job ? structuredClone(job) : undefined }
+  async findByKey(key: string) { const job = await this.jobs.findOne({ idempotencyKey: key }); return job ? structuredClone(job) : undefined }
+  async updateStage(id: string, stage: AnalysisStage, state: StageState) {
+    const result = await this.jobs.findOneAndUpdate({ id }, { $set: { [`stages.${stage}`]: state, updatedAt: new Date().toISOString() } }, { returnDocument: 'after' })
+    if (!result) throw new Error('Analysis job not found')
+    return structuredClone(result)
+  }
+}
