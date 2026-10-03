@@ -23,6 +23,7 @@ export interface RawSearchHit {
   document: SearchDocument
   score: number
   matchedFields: string[]
+  sortKey?: string
 }
 
 export interface SearchResult {
