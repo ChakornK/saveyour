@@ -20,11 +20,13 @@ export interface AcceptedPost {
 
 export interface PostSource {
   get(postId: string, version: number): Promise<AcceptedPost | undefined>
+  save?(post: AcceptedPost): Promise<void>
 }
 
 export class InMemoryPostSource implements PostSource {
   private readonly posts = new Map<string, AcceptedPost>()
   add(post: AcceptedPost) { this.posts.set(`${post.postId}:${post.version}`, structuredClone(post)) }
+  async save(post: AcceptedPost) { this.add(post) }
   async get(postId: string, version: number) { const post = this.posts.get(`${postId}:${version}`); return post ? structuredClone(post) : undefined }
 }
 

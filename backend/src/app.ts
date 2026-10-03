@@ -22,6 +22,8 @@ import { MongoOutbox } from './infrastructure/mongo/outbox'
 import { OpenSearchIndex } from './infrastructure/search/opensearch-index'
 import { SearchEventDelivery } from './infrastructure/search/event-index-delivery'
 import { GeminiProvider } from './infrastructure/ai/gemini-provider'
+import { InMemoryJobQueue } from './modules/analysis/queue'
+import { QueuePublisher } from './modules/analysis/queue-publisher'
 import { captureRoutes } from './modules/capture/routes'
 
 export const createApp = (config: AppConfig) => {
@@ -45,14 +47,15 @@ export const createApp = (config: AppConfig) => {
   const metrics = new InMemoryAnalysisMetrics()
   const provider = useProduction && config.geminiApiKey ? new GeminiProvider({ apiKey: config.geminiApiKey, model: config.geminiModel, timeoutMs: config.geminiTimeoutMs, maxAttempts: config.geminiMaxAttempts }) : new FakeAiProvider()
   const pipeline = new AnalysisPipeline(source, derivedStore, provider)
-  const orchestrator = new AnalysisOrchestrator(repository, pipeline, 3)
+  const queue = new InMemoryJobQueue(repository)
+  const orchestrator = new AnalysisOrchestrator(repository, pipeline, 3, undefined, new QueuePublisher(queue))
   const app = new Elysia({ name: 'saveyour-tech-api' })
     .use(openapi({ documentation: { info: { title: 'saveyour.tech API', version: '0.1.0' } } }))
     .use(cors({ origin: config.corsOrigins.length === 0 ? true : config.corsOrigins }))
     .onError(({ code, error, set }) => { const requestId = crypto.randomUUID(); set.status = code === 'NOT_FOUND' ? 404 : 500; const detail = error instanceof Error ? error.message : undefined; return { code: code === 'NOT_FOUND' ? 'NOT_FOUND' : 'INTERNAL_ERROR', message: code === 'NOT_FOUND' ? 'Route not found' : 'An unexpected error occurred', requestId, ...(config.appEnv === 'development' && detail ? { detail } : {}) } })
     .use(healthRoutes(config, mongo))
     .use(analysisRoutes(orchestrator, repository, metrics))
-    .use(captureRoutes(source as InMemoryPostSource, orchestrator))
+    .use(captureRoutes(source, orchestrator))
     .use(searchRoutes(searchService, new TagSuggestionService(derivedStore)))
     .get('/', () => ({ name: 'saveyour.tech API', status: 'ok' as const, version: '0.1.0' }))
   return Object.assign(app, { initialize, close: async () => mongo?.close() })
