@@ -17,6 +17,20 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: saveyour-tech-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - saveyour-tech-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   opensearch:
     image: opensearchproject/opensearch:2
     container_name: saveyour-tech-opensearch
@@ -38,3 +52,4 @@ services:
 volumes:
   saveyour-tech-mongo-data:
   saveyour-tech-search-data:
+  saveyour-tech-redis-data:
