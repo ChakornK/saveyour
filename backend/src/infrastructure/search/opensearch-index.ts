@@ -18,7 +18,7 @@ export class OpenSearchIndex implements SearchIndex {
   async upsert(document: SearchDocument) { await this.request(`/_doc/${encodeURIComponent(document.documentId)}`, { method: 'PUT', body: JSON.stringify(document) }) }
   async delete(documentId: string) { const response = await fetch(`${this.config.url}/${this.config.index}/_doc/${encodeURIComponent(documentId)}`, { method: 'DELETE', headers: this.config.apiKey ? { authorization: `ApiKey ${this.config.apiKey}` } : undefined }); if (!response.ok && response.status !== 404) throw new Error(`Search delete failed with status ${response.status}`) }
   async query(request: ScopedSearchRequest) {
-    const filters = [{ term: { ownerId: request.ownerId } }]
+    const filters: Array<{ term: Record<string, string> }> = [{ term: { ownerId: request.ownerId } }]
     if (request.filters?.platform) filters.push({ term: { platform: request.filters.platform } })
     if (request.filters?.analysisStatus) filters.push({ term: { analysisStatus: request.filters.analysisStatus } })
     if (request.filters?.mediaType) filters.push({ term: { mediaKinds: request.filters.mediaType } })
