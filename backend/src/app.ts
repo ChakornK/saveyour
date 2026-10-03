@@ -3,6 +3,9 @@ import openapi from '@elysiajs/openapi'
 import { Elysia } from 'elysia'
 import type { AppConfig } from './config/env'
 import { healthRoutes } from './modules/health/routes'
+import { InMemorySearchIndex } from './modules/search/in-memory-index'
+import { SearchService } from './modules/search/service'
+import { searchRoutes } from './modules/search/routes'
 
 export const createApp = (config: AppConfig) =>
   new Elysia({ name: 'saveyour-tech-api' })
@@ -20,4 +23,5 @@ export const createApp = (config: AppConfig) =>
       }
     })
     .use(healthRoutes)
+    .use(searchRoutes(new SearchService(new InMemorySearchIndex())))
     .get('/', () => ({ name: 'saveyour.tech API', status: 'ok' as const, version: '0.1.0' }))
