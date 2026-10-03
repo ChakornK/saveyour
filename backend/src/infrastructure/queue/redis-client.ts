@@ -12,5 +12,6 @@ export class RedisClientAdapter implements RedisLike {
   async zAdd(key: string, item: { score: number; value: string }) { return this.client.zAdd(key, item) }
   async zRangeByScore(key: string, min: number, max: number) { return this.client.zRangeByScore(key, min, max) }
   async zRem(key: string, value: string) { return this.client.zRem(key, value) }
+  async keys(pattern: string) { return this.client.keys(pattern) }
   async close() { await this.client.quit() }
 }

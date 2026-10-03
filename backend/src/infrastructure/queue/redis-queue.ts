@@ -10,6 +10,7 @@ export interface RedisLike {
   zAdd?(key: string, item: { score: number; value: string }): Promise<number>
   zRangeByScore?(key: string, min: number, max: number): Promise<string[]>
   zRem?(key: string, value: string): Promise<number>
+  keys?(pattern: string): Promise<string[]>
 }
 
 export class RedisJobQueue implements JobQueue {
@@ -18,4 +19,5 @@ export class RedisJobQueue implements JobQueue {
   async promoteDueRetries() { if (!this.redis.zRangeByScore || !this.redis.zRem) return 0; const ids = await this.redis.zRangeByScore(this.retryKey, 0, Date.now()); for (const id of ids) { await this.redis.zRem(this.retryKey, id); await this.redis.lPush(this.queueKey, id) }; return ids.length }
   async claim(): Promise<AnalysisJob | undefined> { await this.promoteDueRetries(); const jobId = await this.redis.rPop(this.queueKey); if (!jobId) return undefined; const acquired = await this.redis.set(`analysis:lease:${jobId}`, '1', { EX: this.leaseSeconds, NX: true }); if (!acquired) return undefined; return this.repository.get(jobId) }
   async acknowledge(jobId: string) { await this.redis.del(`analysis:lease:${jobId}`) }
+  async recoverExpired() { return 0 }
 }
