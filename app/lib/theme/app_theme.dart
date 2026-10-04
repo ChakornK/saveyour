@@ -6,6 +6,9 @@ abstract final class AppColors {
   static const ink = Colors.black;
   static const paper = Colors.white;
   static const yellow = Color(0xFFFACC00);
+  static const blue = Color(0xFF7A83FF);
+  static const red = Color(0xFFFF4D50);
+  static const sky = Color(0xFF0099FF);
 }
 
 abstract final class AppTheme {
@@ -14,10 +17,22 @@ abstract final class AppTheme {
       seedColor: AppColors.emerald,
       brightness: Brightness.light,
     );
+    final textTheme = Typography.blackMountainView.apply(
+      bodyColor: AppColors.ink,
+      displayColor: AppColors.ink,
+      fontFamily: 'Sora',
+    );
     return ThemeData(
-      colorScheme: scheme,
+      colorScheme: scheme.copyWith(
+        primary: AppColors.emerald,
+        onPrimary: AppColors.ink,
+        surface: AppColors.paper,
+        onSurface: AppColors.ink,
+        error: AppColors.red,
+      ),
       scaffoldBackgroundColor: AppColors.background,
-      fontFamily: 'Arial',
+      fontFamily: 'Sora',
+      textTheme: textTheme,
       useMaterial3: true,
       inputDecorationTheme: const InputDecorationTheme(
         filled: true,
@@ -38,8 +53,11 @@ abstract final class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size(44, 44),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
           side: const BorderSide(color: AppColors.ink, width: 2),
+          backgroundColor: AppColors.emerald,
+          foregroundColor: AppColors.ink,
           elevation: 0,
           shadowColor: AppColors.ink,
         ),
@@ -54,8 +72,26 @@ abstract final class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           minimumSize: const Size(44, 44),
+          foregroundColor: AppColors.ink,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
         ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.paper,
+        indicatorColor: AppColors.emerald,
+        labelTextStyle: WidgetStateProperty.all(
+          const TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
+      navigationRailTheme: const NavigationRailThemeData(
+        backgroundColor: AppColors.paper,
+        indicatorColor: AppColors.emerald,
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.ink,
+        contentTextStyle: const TextStyle(color: AppColors.paper),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

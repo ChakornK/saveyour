@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'dart:developer' as developer;
-
 import 'package:http/http.dart' as http;
 
 import '../domain/models.dart';
@@ -26,6 +24,7 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
   final http.Client _client;
   final String baseUrl;
   final SessionStore _sessions;
+  static const _requestTimeout = Duration(seconds: 20);
 
   Future<Map<String, String>> _headers({Map<String, String>? extra}) async {
     final session = await _sessions.read();
@@ -55,15 +54,15 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
     late http.Response response;
     switch (method) {
       case 'GET':
-        response = await _client.get(uri, headers: headers);
+        response = await _client.get(uri, headers: headers).timeout(_requestTimeout);
       case 'POST':
         response = await _client.post(
           uri,
           headers: headers,
           body: body == null ? null : jsonEncode(body),
-        );
+        ).timeout(_requestTimeout);
       case 'DELETE':
-        response = await _client.delete(uri, headers: headers);
+        response = await _client.delete(uri, headers: headers).timeout(_requestTimeout);
       default:
         throw StateError('Unsupported HTTP method $method');
     }
@@ -186,8 +185,14 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
       if (query.trim().isNotEmpty) 'q': query,
       if (tags.isNotEmpty) 'tags': tags.join(','),
     });
-    final items = body is List ? body : const <dynamic>[];
-    return items.map((item) => _albumFromJson((item as Map).cast<String, dynamic>())).toList();
+    final items = body is List
+        ? body
+        : body is Map<String, dynamic>
+        ? (body['items'] ?? body['albums'] ?? const <dynamic>[]) as List<dynamic>
+        : const <dynamic>[];
+    return items
+        .map((item) => _albumFromJson((item as Map).cast<String, dynamic>()))
+        .toList();
   }
 
   @override
@@ -220,11 +225,6 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
   @override
   Future<UserProfile> getProfile() async {
     final body = await _request('GET', '/profile');
-    print('PROFILE API RESPONSE: ${jsonEncode(body)}');
-    developer.log(
-      'PROFILE API RESPONSE: ${jsonEncode(body)}',
-      name: 'saveyour.api',
-    );
     if (body is! Map<String, dynamic>) {
       throw const ApiException(null, 'The server returned an invalid profile.');
     }

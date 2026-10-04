@@ -22,6 +22,8 @@ class AlbumsPage extends StatefulWidget {
 class _AlbumsPageState extends State<AlbumsPage> {
   final search = TextEditingController();
   List<Album> albums = [];
+  bool loading = true;
+  String? error;
   @override
   void initState() {
     super.initState();
@@ -29,8 +31,15 @@ class _AlbumsPageState extends State<AlbumsPage> {
   }
 
   Future<void> _load() async {
-    final result = await widget.repository.listAlbums(query: search.text);
-    if (mounted) setState(() => albums = result);
+    if (mounted) setState(() { loading = true; error = null; });
+    try {
+      final result = await widget.repository.listAlbums(query: search.text);
+      if (mounted) setState(() => albums = result);
+    } catch (e) {
+      if (mounted) setState(() => error = '$e');
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
   @override
@@ -52,6 +61,28 @@ class _AlbumsPageState extends State<AlbumsPage> {
         ),
       ),
       const SizedBox(height: 16),
+      if (loading && albums.isEmpty)
+        const Padding(
+          padding: EdgeInsets.all(32),
+          child: Center(child: CircularProgressIndicator()),
+        )
+      else if (error != null && albums.isEmpty)
+        BrutalSurface(
+          child: Column(
+            children: [
+              const Icon(Icons.cloud_off_outlined, size: 40),
+              const SizedBox(height: 8),
+              Text(error!, textAlign: TextAlign.center),
+              const SizedBox(height: 12),
+              FilledButton(onPressed: _load, child: const Text('Retry')),
+            ],
+          ),
+        )
+      else if (!loading && albums.isEmpty)
+        const BrutalSurface(
+          child: Text('No albums yet. Create one from a saved post.'),
+        )
+      else
       GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),

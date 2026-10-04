@@ -137,9 +137,12 @@ class _HomePageState extends State<HomePage> {
       body: Row(
         children: [
           if (wide)
-            _NavigationRail(
-              selected: _tab,
-              onSelect: (value) => setState(() => _tab = value),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 16, 8, 16),
+              child: _NavigationRail(
+                selected: _tab,
+                onSelect: (value) => setState(() => _tab = value),
+              ),
             ),
           Expanded(
             child: _tab == 0
@@ -154,30 +157,40 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      bottomNavigationBar: SafeArea(
-        child: NavigationBar(
-          backgroundColor: AppColors.paper,
-          selectedIndex: _tab,
-          onDestinationSelected: (value) => setState(() => _tab = value),
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: 'Home',
+      floatingActionButton: _tab == 0
+          ? FloatingActionButton.extended(
+              onPressed: _showSaveDialog,
+              backgroundColor: AppColors.emerald,
+              foregroundColor: AppColors.ink,
+              icon: const Icon(Icons.add_link),
+              label: const Text('Save link'),
+            )
+          : null,
+      bottomNavigationBar: wide
+          ? null
+          : SafeArea(
+              child: NavigationBar(
+                selectedIndex: _tab,
+                onDestinationSelected: (value) => setState(() => _tab = value),
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.home_outlined),
+                    selectedIcon: Icon(Icons.home),
+                    label: 'Home',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.grid_view_outlined),
+                    selectedIcon: Icon(Icons.grid_view),
+                    label: 'Albums',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.person_outline),
+                    selectedIcon: Icon(Icons.person),
+                    label: 'Profile',
+                  ),
+                ],
+              ),
             ),
-            NavigationDestination(
-              icon: Icon(Icons.grid_view_outlined),
-              selectedIcon: Icon(Icons.grid_view),
-              label: 'Albums',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -186,11 +199,12 @@ class _HomePageState extends State<HomePage> {
     child: CustomScrollView(
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           sliver: SliverToBoxAdapter(
             child: TextField(
               controller: _searchController,
               onChanged: (_) => _load(),
+              onSubmitted: (_) => _load(),
               textInputAction: TextInputAction.search,
               decoration: const InputDecoration(
                 hintText: 'Search your saved internet',
