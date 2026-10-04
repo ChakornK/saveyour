@@ -187,7 +187,10 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
   @override
   Future<Album> createAlbum(String name) async {
     final body = await _request('POST', '/albums', body: {'name': name});
-    return _albumFromJson(body as Map<String, dynamic>);
+    if (body is! Map<String, dynamic>) {
+      throw const ApiException(null, 'The server returned an invalid album.');
+    }
+    return _albumFromJson(body);
   }
 
   @override

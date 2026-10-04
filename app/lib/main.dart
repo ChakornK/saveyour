@@ -110,7 +110,8 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     if (!_auth.isSignedIn) return _WelcomePage(onContinue: _signIn);
-    final wide = MediaQuery.sizeOf(context).width >= 760;
+    final width = MediaQuery.sizeOf(context).width;
+    final wide = width >= 760;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.background,
@@ -158,75 +159,106 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _homeContent() => RefreshIndicator(
-    onRefresh: _load,
-    child: CustomScrollView(
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          sliver: SliverToBoxAdapter(
-            child: TextField(
-              controller: _searchController,
-              onChanged: (_) {
-                _searchDebounce?.cancel();
-                _searchDebounce = Timer(
-                  const Duration(milliseconds: 350),
-                  _load,
-                );
-              },
-              onSubmitted: (_) => _load(),
-              textInputAction: TextInputAction.search,
-              decoration: const InputDecoration(
-                hintText: 'Search your saved internet',
-                prefixIcon: Icon(Icons.search),
-              ),
-            ),
-          ),
-        ),
-        if (_state.isLoading && !_state.hasData)
-          const SliverFillRemaining(
-            child: Center(child: CircularProgressIndicator()),
-          )
-        else if (_state.status == LoadStatus.empty)
-          const SliverFillRemaining(
-            child: Center(
-              child: Text('Nothing saved yet. Try a different search.'),
-            ),
-          )
-        else if (_state.status == LoadStatus.failure)
-          SliverFillRemaining(
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(_state.message ?? 'Something went wrong.'),
-                  const SizedBox(height: 12),
-                  FilledButton(onPressed: _load, child: const Text('Retry')),
-                ],
-              ),
-            ),
-          )
-        else
+  Widget _homeContent() {
+    final width = MediaQuery.sizeOf(context).width;
+    final columns = width >= 1100
+        ? 4
+        : width >= 760
+        ? 3
+        : 2;
+    return RefreshIndicator(
+      color: AppColors.ink,
+      backgroundColor: AppColors.emerald,
+      onRefresh: _load,
+      child: CustomScrollView(
+        slivers: [
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverGrid.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 18,
-                crossAxisSpacing: 18,
-                childAspectRatio: .80,
-              ),
-              itemCount: _state.data?.length ?? 0,
-              itemBuilder: (context, index) => PostCard(
-                post: _state.data![index],
-                onTap: () => _openPost(_state.data![index]),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            sliver: SliverToBoxAdapter(
+              child: TextField(
+                controller: _searchController,
+                onChanged: (_) {
+                  _searchDebounce?.cancel();
+                  _searchDebounce = Timer(
+                    const Duration(milliseconds: 350),
+                    _load,
+                  );
+                },
+                onSubmitted: (_) => _load(),
+                textInputAction: TextInputAction.search,
+                decoration: const InputDecoration(
+                  hintText: 'Search your saved internet',
+                  prefixIcon: Icon(Icons.search),
+                ),
               ),
             ),
           ),
-        const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
-      ],
-    ),
-  );
+          if (_state.isLoading && !_state.hasData)
+            const SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_state.status == LoadStatus.empty)
+            SliverFillRemaining(
+              child: Center(
+                child: BrutalSurface(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.bookmark_add_outlined, size: 42),
+                      const SizedBox(height: 12),
+                      Text(
+                        _searchController.text.isEmpty
+                            ? 'Your archive is ready.'
+                            : 'No saves match that search.',
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _searchController.text.isEmpty
+                            ? 'Save a link to start building your memory.'
+                            : 'Try a broader keyword or clear the search.',
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          else if (_state.status == LoadStatus.failure)
+            SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(_state.message ?? 'Something went wrong.'),
+                    const SizedBox(height: 12),
+                    FilledButton(onPressed: _load, child: const Text('Retry')),
+                  ],
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverGrid.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  mainAxisSpacing: 18,
+                  crossAxisSpacing: 18,
+                  childAspectRatio: .80,
+                ),
+                itemCount: _state.data?.length ?? 0,
+                itemBuilder: (context, index) => PostCard(
+                  post: _state.data![index],
+                  onTap: () => _openPost(_state.data![index]),
+                ),
+              ),
+            ),
+          const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+        ],
+      ),
+    );
+  }
 
   Future<void> _showSaveDialog() async {
     final controller = TextEditingController();
