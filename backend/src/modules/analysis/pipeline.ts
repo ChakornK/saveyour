@@ -87,7 +87,7 @@ export class AnalysisPipeline implements StageHandler {
       const image = source.media?.[0];
       const localTags = image && this.imageTagger ? await this.imageTagger.tagImage(image) : [];
       const result = localTags.length
-        ? { text: `Image containing ${localTags.map((tag) => tag.label).join(", ")}.`, tags: localTags.map((tag) => tag.label) }
+        ? { text: `Image containing ${localTags.map((tag) => tag.label).join(", ")}.`, tags: localTags.map((tag) => tag.label), provenance: { provider: "local-mobileclip", model: "configured", generatedAt: new Date().toISOString() } }
         : validateGeneratedDescription(await this.ai.describeImage({
             content: image
               ? `data:${image.mimeType};base64,${Buffer.from(image.bytes.buffer, image.bytes.byteOffset, image.bytes.byteLength).toString("base64")}`
@@ -95,6 +95,7 @@ export class AnalysisPipeline implements StageHandler {
             mimeType: image?.mimeType,
           }));
       current.generatedText = result.text;
+      current.generatedTextProvenance = result.provenance;
       current.tags = [
         ...new Set(
           result.tags
