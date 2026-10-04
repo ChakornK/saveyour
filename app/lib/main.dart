@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'domain/models.dart';
+import 'services/api_client.dart';
 import 'services/share_intent.dart';
 import 'theme/app_theme.dart';
 import 'widgets/post_card.dart';
@@ -28,7 +29,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final _repository = MockAppRepository();
+  final _repository = ApiClient();
   final _searchController = TextEditingController();
   final _shareIntents = ShareIntentService();
   StreamSubscription<String>? _shareSubscription;

@@ -13,7 +13,7 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
     SessionStore? sessions,
     this.timeout = const Duration(seconds: 15),
   })  : _client = client ?? http.Client(),
-        sessions = sessions ?? SecureSessionStore();
+        sessions = sessions ?? MemorySessionStore();
 
   final http.Client _client;
   final String baseUrl;
@@ -28,7 +28,9 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
     String? token,
     Map<String, String>? extraHeaders,
   }) async {
-    final session = token == null ? await sessions.read() : null;
+    final session = token == null && sessions is! SecureSessionStore
+        ? await sessions.read()
+        : null;
     final authToken = token ?? session?.token;
     final headers = <String, String>{
       'accept': 'application/json',
