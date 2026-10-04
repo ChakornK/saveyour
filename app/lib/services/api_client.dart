@@ -188,6 +188,7 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
   @override
   Future<UserProfile> getProfile() async {
     final body = await _request('GET', '/profile');
+    print('PROFILE API RESPONSE: ${jsonEncode(body)}');
     developer.log(
       'PROFILE API RESPONSE: ${jsonEncode(body)}',
       name: 'saveyour.api',
