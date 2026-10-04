@@ -24,6 +24,7 @@ export class AnalysisQueueRuntime {
   async handle(message: QueueMessage, workerId: string, lease: JobLease): Promise<void> {
     try {
       const completion = await this.coordinator.process(message.jobId, workerId);
+      if (completion.jobId !== message.jobId || completion.correlationId !== message.correlationId) throw new Error("QUEUE_IDENTITY_MISMATCH");
       await this.coordinator.persistResults(completion, lease);
       await this.queue.ack(message);
     } catch (error) {
