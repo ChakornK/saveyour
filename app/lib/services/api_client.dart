@@ -84,10 +84,14 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
   }
 
   Future<List<SavedPost>> listPostsPage({String? cursor, int limit = 20}) async {
-    final body = await _request('GET', '/captured-posts', query: {
-      if (cursor != null) 'cursor': cursor,
-      'limit': '$limit',
-    });
+    final body = await _request(
+      'GET',
+      '/captured-posts',
+      query: {
+        if (cursor != null) 'cursor': cursor,
+        'limit': '$limit',
+      },
+    );
     return (body['items'] as List<dynamic>? ?? const [])
         .map((item) => _postFromJson((item as Map).cast<String, dynamic>()))
         .toList();
@@ -95,16 +99,20 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
 
   @override
   Future<List<SavedPost>> listPosts({String? query}) async {
-    if (query == null || query.trim().isEmpty) return listPostsPage();
-    final body = await _request('GET', '/v1/search/', query: {'q': query});
-    return (body['results'] as List<dynamic>? ?? const [])
-        .map((item) {
-          final result = (item as Map).cast<String, dynamic>();
-          return _postFromSearchJson(
-            (result['document'] as Map).cast<String, dynamic>(),
-          );
-        })
-        .toList();
+    final body = await _request(
+      'GET',
+      query == null || query.trim().isEmpty ? '/captured-posts' : '/posts',
+      query: {
+        if (query != null && query.trim().isNotEmpty) 'q': query,
+      },
+    );
+    final items = body['items'] as List<dynamic>? ?? const [];
+    return items.map((item) {
+      final value = (item as Map).cast<String, dynamic>();
+      return query == null || query.trim().isEmpty
+          ? _postFromJson(value)
+          : _postFromSearchJson((value['document'] as Map).cast<String, dynamic>());
+    }).toList();
   }
 
   @override

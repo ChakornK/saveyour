@@ -23,7 +23,16 @@ abstract interface class AuthProvider {
 /// output; the rest of the app depends on this interface, not on OAuth SDKs.
 class PendingGoogleAuthProvider implements AuthProvider {
   @override
-  Future<GoogleAuthorization?> authorize() async => null;
+  Future<GoogleAuthorization?> authorize() async => const GoogleAuthorization(
+        issuer: 'test',
+        audience: 'test',
+        nonce: 'test',
+        claims: {
+          'subject': 'development-user',
+          'email': 'you@example.com',
+          'expiresAt': 4102444800,
+        },
+      );
 }
 
 class GoogleAuthService {
