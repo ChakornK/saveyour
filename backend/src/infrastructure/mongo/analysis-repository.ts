@@ -23,11 +23,12 @@ export class MongoAnalysisRepository implements AnalysisRepository {
   }
   async save(job: AnalysisJob) {
     const { _id, ...document } = job as AnalysisJob & { _id?: unknown };
-    await this.jobs.updateOne(
-      { idempotencyKey: job.idempotencyKey },
-      { $set: document },
-      { upsert: true },
-    );
+    const existing = await this.jobs.findOne({ id: job.id }, { projection: { _id: 1 } });
+    if (existing) {
+      await this.jobs.updateOne({ _id: existing._id }, { $set: document });
+    } else {
+      await this.jobs.insertOne(document);
+    }
     return structuredClone(job);
   }
   private withoutMongoId(job: AnalysisJob & { _id?: unknown }) {
@@ -49,17 +50,18 @@ export class MongoAnalysisRepository implements AnalysisRepository {
     );
   }
   async updateStage(id: string, stage: AnalysisStage, state: StageState) {
-    const result = await this.jobs.findOneAndUpdate(
-      { id: id },
+    const result = await this.jobs.updateOne(
+      { id },
       {
         $set: {
           [`stages.${stage}`]: state,
           updatedAt: new Date().toISOString(),
         },
       },
-      { returnDocument: "after" },
     );
-    if (!result) throw new Error("Analysis job not found");
-    return structuredClone(this.withoutMongoId(result));
+    if (result.matchedCount === 0) throw new Error("Analysis job not found");
+    const job = await this.jobs.findOne({ id });
+    if (!job) throw new Error("Analysis job not found");
+    return structuredClone(this.withoutMongoId(job));
   }
 }

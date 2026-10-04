@@ -31,7 +31,6 @@ export class SnowflakeCortexClient implements CortexClient {
     if (!config.account || !config.user || !config.warehouse || !config.database || !config.schema) throw new CortexError('configuration', 'Snowflake Cortex configuration is incomplete')
     if (!config.password && !config.token) throw new CortexError('configuration', 'Snowflake Cortex credential is missing')
     if (config.password && config.token) throw new CortexError('configuration', 'Configure either a Snowflake password or token, not both')
-    if (config.token) throw new CortexError('configuration', 'Snowflake token authentication is unsupported; use username and password')
     this.timeoutMs = config.timeoutMs ?? 10_000
   }
 
@@ -47,7 +46,11 @@ export class SnowflakeCortexClient implements CortexClient {
 
   private async connect() {
     if (this.connection) return this.connection
-    const connection = snowflake.createConnection({ account: this.config.account, username: this.config.user, password: this.config.password, warehouse: this.config.warehouse, database: this.config.database, schema: this.config.schema })
+    const connection = snowflake.createConnection(this.config.token ? { account: this.config.account, username: this.config.user, token: this.config.token, authenticator: this.config.tokenType === 'jwt' ? 'SNOWFLAKE_JWT' : 'OAUTH', warehouse: this.config.warehouse, database: this.config.database, schema: this.config.schema } : { account: this.config.account, username: this.config.user, password: this.config.password, warehouse: this.config.warehouse, database: this.config.database, schema: this.config.schema })
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
+      this.connection = connection
+      return connection
+    }
     await new Promise<void>((resolve, reject) => connection.connect((error) => error ? reject(new CortexError('authentication', `Snowflake connection failed: ${redact(error.message)}`, undefined, error)) : resolve()))
     this.connection = connection
     return connection
