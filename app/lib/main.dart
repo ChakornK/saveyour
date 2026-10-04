@@ -13,8 +13,6 @@ import 'screens.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  auth.requiredAppConfig('API_BASE_URL', api.apiBaseUrl);
-  auth.requiredAppConfig('GOOGLE_SERVER_CLIENT_ID', auth.googleServerClientId);
   runApp(const SaveYourTechApp());
 }
 
@@ -72,7 +70,7 @@ class _HomePageState extends State<HomePage> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: Text(error.toString())));
       }
     }
   }
