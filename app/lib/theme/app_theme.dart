@@ -17,12 +17,31 @@ abstract final class AppTheme {
       seedColor: AppColors.emerald,
       brightness: Brightness.light,
     );
-    final textTheme = Typography.blackMountainView.apply(
-      bodyColor: AppColors.ink,
-      displayColor: AppColors.ink,
-      fontFamily: 'Sora',
-    );
+    final textTheme = Typography.blackMountainView
+        .apply(
+          bodyColor: AppColors.ink,
+          displayColor: AppColors.ink,
+          fontFamily: 'Sora',
+        )
+        .copyWith(
+          displayLarge: const TextStyle(fontFamily: 'Sora'),
+          displayMedium: const TextStyle(fontFamily: 'Sora'),
+          displaySmall: const TextStyle(fontFamily: 'Sora'),
+          headlineLarge: const TextStyle(fontFamily: 'Sora'),
+          headlineMedium: const TextStyle(fontFamily: 'Sora'),
+          headlineSmall: const TextStyle(fontFamily: 'Sora'),
+          titleLarge: const TextStyle(fontFamily: 'Sora'),
+          titleMedium: const TextStyle(fontFamily: 'Sora'),
+          titleSmall: const TextStyle(fontFamily: 'Sora'),
+          bodyLarge: const TextStyle(fontFamily: 'Sora'),
+          bodyMedium: const TextStyle(fontFamily: 'Sora'),
+          bodySmall: const TextStyle(fontFamily: 'Sora'),
+          labelLarge: const TextStyle(fontFamily: 'Sora'),
+          labelMedium: const TextStyle(fontFamily: 'Sora'),
+          labelSmall: const TextStyle(fontFamily: 'Sora'),
+        );
     return ThemeData(
+      primarySwatch: Colors.green,
       colorScheme: scheme.copyWith(
         primary: AppColors.emerald,
         onPrimary: AppColors.ink,
@@ -33,6 +52,7 @@ abstract final class AppTheme {
       scaffoldBackgroundColor: AppColors.background,
       fontFamily: 'Sora',
       textTheme: textTheme,
+      primaryTextTheme: textTheme,
       useMaterial3: true,
       inputDecorationTheme: const InputDecorationTheme(
         filled: true,
@@ -83,10 +103,14 @@ abstract final class AppTheme {
         elevation: 0,
         titleTextStyle: const TextStyle(
           color: AppColors.ink,
+          fontFamily: 'Sora',
           fontSize: 22,
           fontWeight: FontWeight.w900,
         ),
-        contentTextStyle: const TextStyle(color: AppColors.ink),
+        contentTextStyle: const TextStyle(
+          color: AppColors.ink,
+          fontFamily: 'Sora',
+        ),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: Colors.transparent,
@@ -98,7 +122,7 @@ abstract final class AppTheme {
         indicatorColor: AppColors.emerald,
         height: 72,
         labelTextStyle: WidgetStateProperty.all(
-          const TextStyle(fontWeight: FontWeight.w800),
+          const TextStyle(fontFamily: 'Sora', fontWeight: FontWeight.w800),
         ),
       ),
       navigationRailTheme: const NavigationRailThemeData(
@@ -115,7 +139,10 @@ abstract final class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.ink,
-        contentTextStyle: const TextStyle(color: AppColors.paper),
+        contentTextStyle: const TextStyle(
+          color: AppColors.paper,
+          fontFamily: 'Sora',
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
         behavior: SnackBarBehavior.floating,
         elevation: 0,
