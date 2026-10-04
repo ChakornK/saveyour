@@ -99,6 +99,9 @@ abstract interface class AppRepository {
 }
 
 abstract interface class AlbumRepository {
+  Future<Album> createAlbum(String name);
+  Future<void> addToAlbum(String postId, String albumId);
+  Future<void> removeFromAlbum(String postId, String albumId);
   Future<List<Album>> listAlbums({
     String query = '',
     Set<String> tags = const {},
@@ -311,5 +314,64 @@ class MockAppRepository
   Future<void> removePost(String id) async =>
       _posts.removeWhere((p) => p.id == id);
   @override
-  Future<void> removeFromAlbum(String postId, String album) async {}
+  Future<Album> createAlbum(String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) throw const FormatException('Album name is required.');
+    if (_posts.any((p) => p.albums.contains(trimmed))) {
+      throw const FormatException('That album already exists.');
+    }
+    return Album(
+      id: trimmed.toLowerCase(),
+      name: trimmed,
+      coverPost: null,
+      postCount: 0,
+      tags: const {},
+      updatedAt: DateTime.now(),
+      visibility: AlbumVisibility.private,
+    );
+  }
+
+  @override
+  Future<void> addToAlbum(String postId, String albumId) async {
+    final index = _posts.indexWhere((p) => p.id == postId);
+    if (index < 0) throw StateError('Post not found.');
+    final album = albumId[0].toUpperCase() + albumId.substring(1);
+    final post = _posts[index];
+    if (post.albums.contains(album)) return;
+    _posts[index] = SavedPost(
+      id: post.id,
+      title: post.title,
+      description: post.description,
+      platform: post.platform,
+      mediaKind: post.mediaKind,
+      thumbnailUrl: post.thumbnailUrl,
+      mediaUrls: post.mediaUrls,
+      username: post.username,
+      profileImageUrl: post.profileImageUrl,
+      albums: [...post.albums, album],
+      color: post.color,
+      tags: post.tags,
+    );
+  }
+
+  @override
+  Future<void> removeFromAlbum(String postId, String album) async {
+    final index = _posts.indexWhere((p) => p.id == postId);
+    if (index < 0) return;
+    final post = _posts[index];
+    _posts[index] = SavedPost(
+      id: post.id,
+      title: post.title,
+      description: post.description,
+      platform: post.platform,
+      mediaKind: post.mediaKind,
+      thumbnailUrl: post.thumbnailUrl,
+      mediaUrls: post.mediaUrls,
+      username: post.username,
+      profileImageUrl: post.profileImageUrl,
+      albums: post.albums.where((a) => a != album).toList(),
+      color: post.color,
+      tags: post.tags,
+    );
+  }
 }
