@@ -1,55 +1,52 @@
 services:
-  mongodb:
+  mongo:
     image: mongo:8
-    container_name: saveyour-tech-mongodb
     restart: unless-stopped
     ports:
       - "27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: saveyour
-      MONGO_INITDB_ROOT_PASSWORD: change-this-password
       MONGO_INITDB_DATABASE: saveyour-tech
     volumes:
       - saveyour-tech-mongo-data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand({ ping: 1 })"]
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ ping: 1 }).ok"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 20s
 
   redis:
     image: redis:7-alpine
-    container_name: saveyour-tech-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - saveyour-tech-redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
-  opensearch:
-    image: opensearchproject/opensearch:2
-    container_name: saveyour-tech-opensearch
+  meilisearch:
+    image: getmeili/meilisearch:v1.15
     restart: unless-stopped
-    environment:
-      discovery.type: single-node
-      DISABLE_SECURITY_PLUGIN: "true"
-      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
     ports:
-      - "9200:9200"
+      - "7700:7700"
+    environment:
+      MEILI_ENV: development
+      MEILI_NO_ANALYTICS: "true"
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-change-this-meilisearch-key}
     volumes:
-      - saveyour-tech-search-data:/usr/share/opensearch/data
+      - saveyour-tech-meilisearch-data:/meili_data
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health || exit 1"]
-      interval: 15s
-      timeout: 10s
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:7700/health"]
+      interval: 10s
+      timeout: 5s
       retries: 10
 
 volumes:
   saveyour-tech-mongo-data:
-  saveyour-tech-search-data:
   saveyour-tech-redis-data:
+  saveyour-tech-meilisearch-data:

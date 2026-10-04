@@ -1,21 +1,90 @@
 services:
-  mongodb:
-    image: mongo:8
-    container_name: saveyour-tech-mongodb
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
+  api:
+    build:
+      context: ./backend
+    command: ["bun", "src/index.ts"]
+    env_file:
+      - ./backend/.env
     environment:
-      MONGO_INITDB_ROOT_USERNAME: saveyour
-      MONGO_INITDB_ROOT_PASSWORD: change-this-password
+      APP_ENV: production
+      MONGO_URI: mongodb://mongo:27017
+      REDIS_URL: redis://redis:6379
+      SEARCH_URL: http://meilisearch:7700
+    ports:
+      - "3000:3000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./backend
+    command: ["bun", "src/worker.ts"]
+    env_file:
+      - ./backend/.env
+    environment:
+      APP_ENV: production
+      MONGO_URI: mongodb://mongo:27017
+      REDIS_URL: redis://redis:6379
+      SEARCH_URL: http://meilisearch:7700
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:8
+    environment:
       MONGO_INITDB_DATABASE: saveyour-tech
     volumes:
       - saveyour-tech-mongo-data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand({ ping: 1 })"]
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ ping: 1 }).ok"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - saveyour-tech-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.15
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_ENV: production
+      MEILI_NO_ANALYTICS: "true"
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-change-this-meilisearch-key}
+    volumes:
+      - saveyour-tech-meilisearch-data:/meili_data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
 
 volumes:
   saveyour-tech-mongo-data:
+  saveyour-tech-redis-data:
+  saveyour-tech-meilisearch-data:
