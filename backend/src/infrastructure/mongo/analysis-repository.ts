@@ -22,26 +22,35 @@ export class MongoAnalysisRepository implements AnalysisRepository {
     await this.jobs.createIndex({ status: 1, updatedAt: 1 });
   }
   async save(job: AnalysisJob) {
-    await this.jobs.replaceOne({ idempotencyKey: job.idempotencyKey }, job, {
-      upsert: true,
-    });
+    const { _id, ...document } = job as AnalysisJob & { _id?: unknown };
+    const existing = await this.jobs.findOne({ id: job.id }, { projection: { _id: 1 } });
+    if (existing) {
+      await this.jobs.updateOne({ _id: existing._id }, { $set: document });
+    } else {
+      await this.jobs.insertOne(document);
+    }
     return structuredClone(job);
   }
+  private withoutMongoId(job: AnalysisJob & { _id?: unknown }) {
+    const { _id, ...document } = job;
+    return document as AnalysisJob;
+  }
+
   async get(id: string) {
     const job = await this.jobs.findOne({ id });
-    return job ? structuredClone(job) : undefined;
+    return job ? structuredClone(this.withoutMongoId(job)) : undefined;
   }
   async findByKey(key: string) {
     const job = await this.jobs.findOne({ idempotencyKey: key });
-    return job ? structuredClone(job) : undefined;
+    return job ? structuredClone(this.withoutMongoId(job)) : undefined;
   }
   async listRetryable() {
     return (await this.jobs.find({ status: "processing" }).toArray()).map(
-      (job) => structuredClone(job),
+      (job) => structuredClone(this.withoutMongoId(job)),
     );
   }
   async updateStage(id: string, stage: AnalysisStage, state: StageState) {
-    const result = await this.jobs.findOneAndUpdate(
+    const result = await this.jobs.updateOne(
       { id },
       {
         $set: {
@@ -49,9 +58,10 @@ export class MongoAnalysisRepository implements AnalysisRepository {
           updatedAt: new Date().toISOString(),
         },
       },
-      { returnDocument: "after" },
     );
-    if (!result) throw new Error("Analysis job not found");
-    return structuredClone(result);
+    if (result.matchedCount === 0) throw new Error("Analysis job not found");
+    const job = await this.jobs.findOne({ id });
+    if (!job) throw new Error("Analysis job not found");
+    return structuredClone(this.withoutMongoId(job));
   }
 }

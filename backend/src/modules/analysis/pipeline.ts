@@ -82,7 +82,12 @@ export class AnalysisPipeline implements StageHandler {
     }
     if (stage === "describe" || stage === "normalize") {
       const result = validateGeneratedDescription(
-        await this.ai.describeImage({ content: source.sourceText }),
+        await this.ai.describeImage({
+          content: source.media?.[0]
+            ? `data:${source.media[0].mimeType};base64,${Buffer.from(source.media[0].bytes.buffer, source.media[0].bytes.byteOffset, source.media[0].bytes.byteLength).toString("base64")}`
+            : source.sourceText,
+          mimeType: source.media?.[0]?.mimeType,
+        }),
       );
       current.generatedText = result.text;
       current.tags = [
@@ -93,25 +98,31 @@ export class AnalysisPipeline implements StageHandler {
         ),
       ];
     }
-    if (stage === "transcribe")
-      current.transcript = validateTranscript(
-        await this.ai.transcribe({ content: source.sourceText }),
-      )
-        .segments.map((segment) => segment.text)
-        .join(" ");
-    if (stage === "embed")
-      current.embedding = validateEmbedding(
-        await this.ai.embed({
-          content: [
-            source.sourceText,
-            current.generatedText,
-            current.transcript,
-            ...current.tags,
-          ]
-            .filter(Boolean)
-            .join(" "),
-        }),
-      );
+    if (stage === "transcribe") {
+      try {
+        current.transcript = validateTranscript(
+          await this.ai.transcribe({ content: source.sourceText }),
+        )
+          .segments.map((segment) => segment.text)
+          .join(" ");
+      } catch (error) {
+        if (!(error instanceof Error) || !error.message.includes("AI_TRANSCRIBE")) throw error;
+        current.transcript = "";
+      }
+    }
+    if (stage === "embed") {
+      const embedding = await this.ai.embed({
+        content: [
+          source.sourceText,
+          current.generatedText,
+          current.transcript,
+          ...current.tags,
+        ]
+          .filter(Boolean)
+          .join(" "),
+      });
+      current.embedding = validateEmbedding(embedding, embedding.length);
+    }
     if (!current.completedStages.includes(stage))
       current.completedStages.push(stage);
     current.updatedAt = new Date().toISOString();

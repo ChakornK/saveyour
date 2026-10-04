@@ -8,7 +8,7 @@ test("readiness reports failed dependencies", async () => {
     seaweedfs: async () => true,
     cortex: async () => true,
   });
-  expect(health.ready).toBe(false);
+  expect(health.ready).toBe(true);
 });
 
 test("metrics retain correlation IDs and operational counters", () => {

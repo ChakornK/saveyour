@@ -32,6 +32,9 @@ import { InMemoryRateLimitStore, rateLimit } from './modules/limits/rate-limit'
 import { authentication } from './modules/auth/auth'
 import { captureRoutes } from './modules/capture/routes'
 import { initializeSearchIndex } from './infrastructure/search/index-init'
+import { MongoMediaAssetRepository } from './modules/media/repository'
+import { SeaweedFsMediaStore } from './infrastructure/media/seaweedfs-store'
+import { CaptureMediaWorkflow } from './modules/capture/media-workflow'
 
 export const createApp = (config: AppConfig) => {
   const useProduction = config.appEnv === 'production'
@@ -39,6 +42,9 @@ export const createApp = (config: AppConfig) => {
   const repository = useProduction ? new MongoAnalysisRepository(mongo!) : new InMemoryAnalysisRepository()
   const derivedStore = useProduction ? new MongoDerivedPostStore(mongo!) : new InMemoryDerivedPostStore()
   const source = useProduction ? new MongoPostSource(mongo!) : new InMemoryPostSource()
+  const mediaRepository = useProduction ? new MongoMediaAssetRepository(mongo!) : undefined
+  const mediaStore = useProduction && mediaRepository && config.seaweedfsEndpoint ? new SeaweedFsMediaStore({ endpoint: config.seaweedfsEndpoint, bucket: config.seaweedfsBucket ?? 'saveyour-tech', accessKey: config.seaweedfsAccessKey, secretKey: config.seaweedfsSecretKey, maxBytes: config.mediaMaxBytes ?? 25 * 1024 * 1024 }, mediaRepository) : undefined
+  const mediaWorkflow = mediaStore ? new CaptureMediaWorkflow(mediaStore) : undefined
   const searchConfig = useProduction && config.searchUrl ? { url: config.searchUrl, index: config.searchIndex, apiKey: config.searchApiKey } : undefined
   const searchIndex = searchConfig ? new MeilisearchIndex(searchConfig) : new InMemorySearchIndex()
   const searchService = new SearchService(searchIndex)
@@ -51,14 +57,15 @@ export const createApp = (config: AppConfig) => {
         new MongoAnalysisRepository(mongo).ensureIndexes(),
         new MongoDerivedPostStore(mongo).ensureIndexes(),
         new MongoPostSource(mongo).ensureIndexes(),
-        new MongoOutbox(mongo).ensureIndexes()
+        new MongoOutbox(mongo).ensureIndexes(),
+        mediaRepository!.ensureIndexes()
       ])
     }
     await initializeSearchIndex(searchIndex, searchConfig)
   }
   const metrics = new InMemoryAnalysisMetrics()
   const provider = useProduction && config.snowflakeAccount && config.snowflakeUser && config.snowflakeWarehouse && config.snowflakeDatabase && config.snowflakeSchema && (config.snowflakePassword || config.snowflakeToken)
-    ? new CortexAnalysisProvider(new SnowflakeCortexClient({ account: config.snowflakeAccount, user: config.snowflakeUser, password: config.snowflakePassword, token: config.snowflakeToken, warehouse: config.snowflakeWarehouse, database: config.snowflakeDatabase, schema: config.snowflakeSchema, endpoint: config.snowflakeEndpoint, timeoutMs: config.cortexTimeoutMs ?? 10_000 }), { model: config.cortexModel ?? 'claude-3-5-sonnet', embeddingModel: config.cortexEmbeddingModel ?? 'snowflake-arctic-embed-m-v1.5', maxAttempts: config.cortexMaxAttempts ?? 3 })
+    ? new CortexAnalysisProvider(new SnowflakeCortexClient({ account: config.snowflakeAccount, user: config.snowflakeUser, password: config.snowflakePassword, token: config.snowflakeToken, tokenType: config.snowflakeTokenType, warehouse: config.snowflakeWarehouse, database: config.snowflakeDatabase, schema: config.snowflakeSchema, endpoint: config.snowflakeEndpoint, timeoutMs: config.cortexTimeoutMs ?? 10_000 }), { model: config.cortexModel ?? 'claude-3-5-sonnet', embeddingModel: config.cortexEmbeddingModel ?? 'snowflake-arctic-embed-m-v1.5', maxAttempts: config.cortexMaxAttempts ?? 3 })
     : useProduction && config.geminiApiKey
       ? new GeminiProvider({ apiKey: config.geminiApiKey, model: config.geminiModel, timeoutMs: config.geminiTimeoutMs, maxAttempts: config.geminiMaxAttempts })
       : new FakeAiProvider()
@@ -73,7 +80,7 @@ export const createApp = (config: AppConfig) => {
     .onError(({ code, error, set }) => { const requestId = crypto.randomUUID(); const status = code === 'NOT_FOUND' ? 404 : code === 'VALIDATION' ? 400 : 500; set.status = status; const detail = error instanceof Error ? error.message : undefined; return { code: code === 'NOT_FOUND' ? 'NOT_FOUND' : code === 'VALIDATION' ? 'VALIDATION_ERROR' : 'INTERNAL_ERROR', message: code === 'NOT_FOUND' ? 'Route not found' : code === 'VALIDATION' ? 'Request validation failed' : 'An unexpected error occurred', requestId, ...(config.appEnv !== 'production' && detail ? { detail } : {}) } })
     .use(healthRoutes())
     .use(analysisRoutes(orchestrator, repository, metrics))
-    .use(captureRoutes(source, orchestrator))
+    .use(captureRoutes(source, orchestrator, mediaWorkflow, mediaStore))
     .use(searchRoutes(searchService, new TagSuggestionService(derivedStore)))
     .get('/', () => ({ name: 'saveyour.tech API', status: 'ok' as const, version: '0.1.0' }))
   return Object.assign(app, { initialize, close: async () => { await redis?.close(); await mongo?.close() } })

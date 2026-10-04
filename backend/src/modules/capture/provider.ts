@@ -40,9 +40,11 @@ export class MetadataSourceAdapter implements SourceAdapter {
       ...html.matchAll(
         /<meta[^>]+(?:property|name)=["'](?:og:image|og:video|twitter:image)["'][^>]+content=["']([^"']+)["']/gi,
       ),
+      ...html.matchAll(/https?:\\?\/\\?\/[^"'\\s]+\.(?:jpg|jpeg|png|webp)(?:\?[^"'\\s]*)?/gi),
     ]
-      .map((match) => match[1])
-      .filter(Boolean)
+      .map((match) => match[1] ?? match[0])
+      .map((value) => value.replaceAll("\\u0026", "&").replaceAll("&amp;", "&"))
+      .filter((value) => /^https:\/\//i.test(value))
       .slice(0, 20);
     const title = html.match(
       /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i,
