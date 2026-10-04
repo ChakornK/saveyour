@@ -334,7 +334,12 @@ class _ProfilePageState extends State<ProfilePage> {
                         : () async {
                             setState(() => _signingIn = true);
                             try {
-                              await widget.auth?.signIn();
+                              await widget.auth?.signIn().timeout(
+                                const Duration(seconds: 30),
+                                onTimeout: () => throw const AuthException(
+                                  'Google sign-in timed out. Check the backend connection and try again.',
+                                ),
+                              );
                               if (mounted) setState(() {});
                             } catch (error) {
                               if (!mounted) return;
