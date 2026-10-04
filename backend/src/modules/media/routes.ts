@@ -1,6 +1,8 @@
 import { Elysia, t } from "elysia";
+import { randomUUID } from "node:crypto";
 import { AuthError, AuthService } from "../auth/service";
 import { MediaError, type MediaStore } from "./store";
+import type { MediaDownloadQueue } from "./download-queue";
 
 const bearer = (value: string | undefined) => {
   const token = value?.replace(/^Bearer\s+/i, "");
@@ -9,7 +11,11 @@ const bearer = (value: string | undefined) => {
   return token;
 };
 
-export const createMediaRoutes = (auth: AuthService, store: MediaStore) =>
+export const createMediaRoutes = (
+  auth: AuthService,
+  store: MediaStore,
+  downloads?: MediaDownloadQueue,
+) =>
   new Elysia({ name: "media" })
     .post(
       "/media",
@@ -27,6 +33,35 @@ export const createMediaRoutes = (auth: AuthService, store: MediaStore) =>
         return asset;
       },
       { body: t.Object({ postId: t.String(), file: t.File() }) },
+    )
+    .post(
+      "/media/download",
+      async ({ headers, body, set }) => {
+        const scope = auth.authenticate(bearer(headers.authorization));
+        if (!downloads) {
+          set.status = 503;
+          return {
+            code: "MEDIA_QUEUE_UNAVAILABLE",
+            message: "Media download queue unavailable",
+          };
+        }
+        const job = {
+          id: randomUUID(),
+          url: body.url,
+          postId: body.postId,
+          scope,
+          attempts: 0,
+        };
+        await downloads.enqueue(job);
+        set.status = 202;
+        return { jobId: job.id, status: "queued" as const };
+      },
+      {
+        body: t.Object({
+          postId: t.String(),
+          url: t.String({ minLength: 1, maxLength: 2048 }),
+        }),
+      },
     )
     .get(
       "/media/:assetId",

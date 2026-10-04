@@ -10,7 +10,13 @@ import {
 } from "./types";
 
 export class CaptureService {
-  constructor(private readonly repository: CaptureRepository) {}
+  constructor(
+    private readonly repository: CaptureRepository,
+    private readonly onCaptured?: (
+      post: SavedPost,
+      scope: OwnerScope,
+    ) => Promise<void>,
+  ) {}
 
   async capture(
     command: CaptureCommand,
@@ -51,6 +57,7 @@ export class CaptureService {
       deletionState: "active",
     };
     await this.repository.insert(post);
+    await this.onCaptured?.(post, scope);
     const result = { post, duplicate: false, replayed: false };
     if (command.idempotencyKey)
       await this.repository.setIdempotent(

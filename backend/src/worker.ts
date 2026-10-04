@@ -13,6 +13,7 @@ import { AnalysisPipeline } from "./modules/analysis/pipeline";
 import { GeminiProvider } from "./infrastructure/ai/gemini-provider";
 import { MeilisearchIndex } from "./infrastructure/search/meilisearch-index";
 import { SearchEventDelivery } from "./infrastructure/search/event-index-delivery";
+import { MongoMediaAssetRepository } from "./modules/media/repository";
 
 const config = loadConfig();
 const mongo = new MongoDatabase({
@@ -29,6 +30,7 @@ await Promise.all([
   derived.ensureIndexes(),
   source.ensureIndexes(),
   outbox.ensureIndexes(),
+  new MongoMediaAssetRepository(mongo).ensureIndexes(),
 ]);
 
 if (!config.redisUrl) throw new Error("REDIS_URL is required for the worker");

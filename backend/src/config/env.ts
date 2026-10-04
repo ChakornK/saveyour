@@ -11,6 +11,8 @@ export interface AppConfig {
   requestTimeoutMs?: number;
   seaweedfsEndpoint?: string;
   seaweedfsBucket?: string;
+  seaweedfsAccessKey?: string;
+  seaweedfsSecretKey?: string;
   googleClientId?: string;
   authRequired: boolean;
   authTokens: Record<string, string>;
@@ -25,6 +27,8 @@ export interface AppConfig {
   geminiTimeoutMs: number;
   geminiMaxAttempts: number;
   workerConcurrency: number;
+  ytDlpBinary: string;
+  ytDlpTempDir: string;
 }
 
 const positiveInteger = (
@@ -95,6 +99,12 @@ export const loadConfig = (
       ? { seaweedfsEndpoint: env.SEAWEEDFS_ENDPOINT }
       : {}),
     seaweedfsBucket: env.SEAWEEDFS_BUCKET ?? "saveyour-tech",
+    ...(env.SEAWEEDFS_ACCESS_KEY
+      ? { seaweedfsAccessKey: env.SEAWEEDFS_ACCESS_KEY }
+      : {}),
+    ...(env.SEAWEEDFS_SECRET_KEY
+      ? { seaweedfsSecretKey: env.SEAWEEDFS_SECRET_KEY }
+      : {}),
     ...(env.GOOGLE_CLIENT_ID ? { googleClientId: env.GOOGLE_CLIENT_ID } : {}),
     authRequired:
       env.AUTH_REQUIRED === "true" ||
@@ -123,5 +133,7 @@ export const loadConfig = (
       2,
       "WORKER_CONCURRENCY",
     ),
+    ytDlpBinary: env.YTDLP_BINARY ?? "yt-dlp",
+    ytDlpTempDir: env.YTDLP_TEMP_DIR ?? "/tmp/saveyour-media",
   };
 };

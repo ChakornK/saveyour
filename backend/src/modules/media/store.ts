@@ -36,6 +36,7 @@ export interface MediaStore {
     assetId: string,
     scope: OwnerScope,
   ): Promise<{ asset: StoredAsset; body: Uint8Array }>;
+  markDeleted(assetId: string, scope: OwnerScope): Promise<void>;
 }
 
 export class InMemoryMediaStore implements MediaStore {
@@ -76,6 +77,12 @@ export class InMemoryMediaStore implements MediaStore {
     };
     this.assets.set(asset.id, { asset, body: input.body.slice() });
     return asset;
+  }
+
+  async markDeleted(assetId: string, scope: OwnerScope) {
+    const entry = this.assets.get(assetId);
+    if (!entry || entry.asset.ownerId !== scope.ownerId) return;
+    entry.asset.availability = "unavailable";
   }
 
   async authorizeRead(assetId: string, scope: OwnerScope) {
