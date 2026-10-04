@@ -10,6 +10,7 @@ import { RedisJobQueue } from './infrastructure/queue/redis-queue'
 import { AnalysisWorker } from './modules/analysis/queue'
 import { AnalysisOrchestrator } from './modules/analysis/orchestrator'
 import { AnalysisPipeline } from './modules/analysis/pipeline'
+import { FfmpegMediaProcessor } from './infrastructure/media/ffmpeg-processor'
 import { GeminiProvider } from './infrastructure/ai/gemini-provider'
 import { SnowflakeCortexClient } from './infrastructure/ai/cortex-client'
 import { CortexAnalysisProvider } from './infrastructure/ai/cortex-provider'
@@ -35,7 +36,7 @@ const provider = config.geminiApiKey
   : new CortexAnalysisProvider(new SnowflakeCortexClient({ account: config.snowflakeAccount!, user: config.snowflakeUser!, password: config.snowflakePassword, token: config.snowflakeToken, tokenType: config.snowflakeTokenType, model: config.cortexModel, warehouse: config.snowflakeWarehouse!, database: config.snowflakeDatabase!, schema: config.snowflakeSchema!, timeoutMs: config.cortexTimeoutMs ?? 120_000 }), { model: config.cortexModel ?? 'llama3.1-70b', embeddingModel: config.cortexEmbeddingModel ?? 'snowflake-arctic-embed-m-v1.5', maxAttempts: config.cortexMaxAttempts ?? 3 })
 const delivery = new SearchEventDelivery(search)
 const outboxWorker = new OutboxWorker(outbox, delivery)
-const orchestrator = new AnalysisOrchestrator(repository, new AnalysisPipeline(source, derived, provider), 3)
+const orchestrator = new AnalysisOrchestrator(repository, new AnalysisPipeline(source, derived, provider, undefined, new FfmpegMediaProcessor({ timeoutMs: config.requestTimeoutMs ?? 10_000, limits: { maxBytes: config.mediaMaxBytes ?? 25 * 1024 * 1024, maxDurationMs: 60 * 60 * 1000, maxFrames: 12 } })), 3)
 const queue = new RedisJobQueue(redis, repository)
 const worker = new AnalysisWorker(queue, async (jobId) => { await orchestrator.process(jobId) })
 let stopping = false

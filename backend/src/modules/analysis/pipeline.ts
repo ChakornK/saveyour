@@ -100,8 +100,16 @@ export class AnalysisPipeline implements StageHandler {
     }
     if (stage === "transcribe") {
       try {
+        const audio = source.media?.[0] && this.media
+          ? await this.media.extractAudio(source.media[0])
+          : source.media?.[0];
         current.transcript = validateTranscript(
-          await this.ai.transcribe({ content: source.sourceText }),
+          await this.ai.transcribe({
+            content: audio
+              ? `data:${audio.mimeType};base64,${Buffer.from(audio.bytes.buffer, audio.bytes.byteOffset, audio.bytes.byteLength).toString("base64")}`
+              : source.sourceText,
+            mimeType: audio?.mimeType,
+          }),
         )
           .segments.map((segment) => segment.text)
           .join(" ");

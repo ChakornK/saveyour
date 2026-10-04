@@ -10,6 +10,7 @@ import {
 } from "../media/downloader";
 import type { MediaStore, StoredAsset } from "../media/store";
 import type { OwnerScope } from "./types";
+import { ProcessYtDlp, readMedia, cleanupMedia } from "../media/yt-dlp";
 
 export interface CaptureMediaResult {
   source: ResolvedSource;
@@ -35,6 +36,19 @@ export class CaptureMediaWorkflow {
   ): Promise<CaptureMediaResult> {
     const canonical = normalizePostUrl(rawUrl);
     const source = await this.registry.resolve(canonical);
+    if (canonical.platform === "instagram" && /\/reel\//i.test(rawUrl)) {
+      const runner = new ProcessYtDlp({ binary: "yt-dlp", tempDir: "/tmp/saveyour-capture", maxBytes: this.policy.maxBytes, timeoutMs: this.policy.timeoutMs });
+      try {
+        const result = await runner.extract(rawUrl);
+        const media = await readMedia(result.filepath);
+        const mimeType = result.ext === "mp4" ? "video/mp4" : result.ext === "webm" ? "video/webm" : `image/${result.ext ?? "jpeg"}`;
+        const asset = await this.store.put({ postId, body: media.body, mimeType }, scope);
+        await cleanupMedia(result.filepath);
+        return { source: { ...source, mediaUrls: [rawUrl] }, assets: [asset], failures: [] };
+      } catch (error) {
+        return { source, assets: [], failures: [error instanceof Error ? error.message : "reel extraction failed"] };
+      }
+    }
     const assets: StoredAsset[] = [];
     const failures: string[] = [];
     const allowedHosts =

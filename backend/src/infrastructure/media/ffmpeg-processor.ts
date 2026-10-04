@@ -66,7 +66,7 @@ export class FfmpegMediaProcessor implements MediaProcessor {
     const input = join(dir, "input");
     const output = join(dir, "frame-%02d.jpg");
     try {
-      await writeFile(input, asset.bytes);
+      await writeFile(input, Buffer.from(asset.bytes));
       const count = Math.max(
         1,
         Math.min(
@@ -114,7 +114,7 @@ export class FfmpegMediaProcessor implements MediaProcessor {
     const input = join(dir, "input");
     const output = join(dir, "audio.wav");
     try {
-      await writeFile(input, asset.bytes);
+      await writeFile(input, Buffer.from(asset.bytes));
       await this.run(
         ["-y", "-i", input, "-vn", "-ac", "1", "-ar", "16000", output],
         dir,

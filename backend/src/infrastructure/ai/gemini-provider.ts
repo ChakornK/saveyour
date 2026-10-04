@@ -18,7 +18,7 @@ export class GeminiProvider implements AiProvider {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), this.config.timeoutMs);
       try {
-        const parts = input.mimeType?.startsWith("image/") && input.content.startsWith("data:")
+        const parts = (input.mimeType?.startsWith("image/") || input.mimeType?.startsWith("audio/")) && input.content.startsWith("data:")
           ? [{ inline_data: { mime_type: input.mimeType, data: input.content.split(",", 2)[1] } }, { text: prompt }]
           : [{ text: `${prompt}\n\nInput:\n${input.content}` }];
         const response = await fetch(`${this.config.endpoint ?? "https://generativelanguage.googleapis.com/v1beta/models"}/${this.config.model}:generateContent?key=${encodeURIComponent(this.config.apiKey)}`, {
@@ -52,7 +52,7 @@ export class GeminiProvider implements AiProvider {
   }
 
   transcribe(input: AiInput): Promise<Transcript> {
-    return this.request(input, "Return JSON only: {\"segments\": [{\"text\": string, \"startMs\": number, \"endMs\": number}]}. Transcribe the supplied audio.", (value) => {
+    return this.request(input, "Return JSON only: {\"segments\": [{\"text\": string, \"startMs\": number, \"endMs\": number}]}. Transcribe the supplied audio exactly. Do not infer, summarize, or use the URL. If the audio is inaudible, return an empty segments array.", (value) => {
       const result = value as { segments?: unknown };
       if (!Array.isArray(result.segments)) throw new Error("Invalid transcript response");
       return { segments: result.segments as Transcript["segments"], provenance: { provider: "gemini", model: this.config.model, promptVersion: "v1", generatedAt: new Date().toISOString() } };
