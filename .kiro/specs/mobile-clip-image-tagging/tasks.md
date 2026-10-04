@@ -43,7 +43,7 @@ Implement and verify a native ONNX image-tagging provider, integrate it with the
   - Add fixture assertions for cat, rabbit, board game, and reel images.
   - _Requirements: 3.4, 4.4, 5.2, 7.3_
 
-- [ ] 8. Run full validation
+- [x] 8. Run full validation
   - Run Bun typecheck and tests.
   - Build the worker image and confirm model provisioning.
   - Run live social-media fixtures through terminal status.
