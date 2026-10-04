@@ -22,6 +22,8 @@ export interface SavedPost {
   sourceStatus: SourceStatus;
   analysisStatus: AnalysisStatus;
   deletionState: DeletionState;
+  description?: string;
+  mediaAssetId?: string;
 }
 
 export interface CaptureCommand {
