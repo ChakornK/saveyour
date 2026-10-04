@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { FakeCortexClient, redactCortexDiagnostic } from '../src/infrastructure/ai/cortex-client'
+import { FakeCortexClient, redactCortexDiagnostic, redactCortexValue } from '../src/infrastructure/ai/cortex-client'
 import { CortexAnalysisProvider } from '../src/infrastructure/ai/cortex-provider'
 import { CortexError } from '../src/infrastructure/ai/cortex-types'
 
@@ -11,6 +11,10 @@ describe('CortexAnalysisProvider', () => {
     const result = redactCortexDiagnostic('password=secret https://example.test/file.wav?sig=private')
     expect(result).not.toContain('secret')
     expect(result).not.toContain('example.test')
+  })
+
+  test('redacts nested credential fields from provider values', () => {
+    expect(redactCortexValue({ password: 'secret', nested: { token: 'private' }, text: 'safe' })).toEqual({ password: '[REDACTED]', nested: { token: '[REDACTED]' }, text: 'safe' })
   })
 
   test('normalizes image results', async () => {
