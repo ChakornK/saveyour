@@ -181,6 +181,25 @@ class MockAppRepository implements AppRepository {
       color: 0xFF0099FF,
       tags: ['home', 'design'],
     ),
+    const SavedPost(
+      id: '11',
+      title: 'Notes on making room for better work',
+      description:
+          'I used to think a productive week came from finding the perfect system. '
+          'The right app, the right notebook, the right morning routine, and a '
+          'carefully color-coded list for every loose end. What actually helped '
+          'was much less exciting: deciding what deserved my attention before the '
+          'week began, leaving generous space between commitments, and accepting '
+          'that unfinished work is not the same thing as failed work. A quiet '
+          'calendar gave me enough room to notice which projects still mattered. '
+          'That is the part I want to remember when the next busy season arrives.',
+      platform: SourcePlatform.x,
+      mediaKind: MediaKind.text,
+      username: '@thoughtfulwork',
+      albums: ['Reading', 'Ideas'],
+      color: 0xFF7A83FF,
+      tags: ['work', 'reflection', 'planning'],
+    ),
   ];
 
   @override
