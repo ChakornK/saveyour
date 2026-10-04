@@ -121,7 +121,7 @@ class _HomePageState extends State<HomePage> {
                 ? _homeContent()
                 : _tab == 1
                 ? AlbumsPage(repository: _repository, onOpenPost: _openPost)
-                : ProfilePage(repository: _repository),
+                : ProfilePage(repository: _repository, auth: _auth),
           ),
         ],
       ),

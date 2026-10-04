@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'domain/models.dart';
+import 'services/auth.dart';
 import 'theme/app_theme.dart';
 import 'widgets/brutalist_button.dart';
 import 'widgets/post_card.dart';
@@ -236,12 +237,19 @@ class _NestedNavigationBar extends StatelessWidget {
   );
 }
 
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key, required this.repository});
+class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key, required this.repository, this.auth});
   final ProfileRepository repository;
+  final GoogleAuthService? auth;
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) => FutureBuilder<UserProfile>(
-    future: repository.getProfile(),
+    future: widget.repository.getProfile(),
     builder: (context, snapshot) {
       if (!snapshot.hasData)
         return const Center(child: CircularProgressIndicator());
@@ -290,12 +298,31 @@ class ProfilePage extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           BrutalSurface(
-            child: BrutalistButton(
-              label: 'Log out',
-              icon: const Icon(Icons.logout),
-              variant: BrutalistButtonVariant.destructive,
-              onPressed: () => repository.logOut(),
-            ),
+            child: widget.auth?.isSignedIn == true
+                ? BrutalistButton(
+                    label: 'Log out',
+                    icon: const Icon(Icons.logout),
+                    variant: BrutalistButtonVariant.destructive,
+                    onPressed: () async {
+                      await widget.auth?.signOut();
+                      if (mounted) setState(() {});
+                    },
+                  )
+                : BrutalistButton(
+                    label: 'Continue with Google',
+                    icon: const Icon(Icons.login),
+                    onPressed: () async {
+                      try {
+                        await widget.auth?.signIn();
+                        if (mounted) setState(() {});
+                      } catch (error) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('$error')),
+                        );
+                      }
+                    },
+                  ),
           ),
         ],
       );
