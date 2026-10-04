@@ -32,6 +32,9 @@ class SavedPost {
     this.albums = const [],
     this.color = 0xFF00D696,
     this.tags = const [],
+    this.analysisStatus,
+    this.sourceUrl,
+    this.capturedAt,
   });
   final String id;
   final String title;
@@ -45,6 +48,9 @@ class SavedPost {
   final List<String> albums;
   final int color;
   final List<String> tags;
+  final String? analysisStatus;
+  final String? sourceUrl;
+  final DateTime? capturedAt;
 }
 
 class Album {
