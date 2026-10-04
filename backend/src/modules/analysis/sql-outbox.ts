@@ -6,7 +6,7 @@ export class SqlOutbox implements DurableOutbox {
   constructor(private readonly db: SqlExecutor) {}
 
   async claim(limit: number): Promise<DurableOutboxRecord[]> {
-    const rows = await this.db.query<DurableOutboxRecord>(
+    const rows = await this.db.query<DurableOutboxRecord & { payload: string | AnalysisJob }>(
       "SELECT event_id AS eventId, job_id AS jobId, owner_id AS ownerId, correlation_id AS correlationId, idempotency_key AS idempotencyKey, attempts, status, payload FROM analysis_outbox WHERE status IN ('pending', 'retryable') AND (next_attempt_at IS NULL OR next_attempt_at <= CURRENT_TIMESTAMP(3)) ORDER BY created_at LIMIT ?",
       [limit],
     );
