@@ -10,6 +10,13 @@ export interface AiProvider {
   embed(input: AiInput): Promise<number[]>;
 }
 
+export class RoutedAiProvider implements AiProvider {
+  constructor(private readonly vision: AiProvider, private readonly embeddings: AiProvider = vision) {}
+  describeImage(input: AiInput) { return this.vision.describeImage(input); }
+  transcribe(input: AiInput) { return this.vision.transcribe(input); }
+  embed(input: AiInput) { return this.embeddings.embed(input); }
+}
+
 const provenance = (provider: string, model: string): Provenance => ({
   provider,
   model,
