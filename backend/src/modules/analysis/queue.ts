@@ -40,6 +40,8 @@ export class InMemoryJobQueue implements JobQueue {
 export class AnalysisWorker {
   constructor(private readonly queue: JobQueue, private readonly process: (jobId: string) => Promise<unknown>) {}
 
+  async recover() { return this.queue.recoverExpired ? this.queue.recoverExpired() : 0 }
+
   async runOnce() {
     const job = await this.queue.claim()
     if (!job) return false
