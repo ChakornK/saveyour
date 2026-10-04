@@ -7,6 +7,7 @@
       "dependencies": {
         "@elysiajs/cors": "^1.4.2",
         "@elysiajs/openapi": "^1.4.16",
+        "@scalar/types": "^0.22.4",
         "elysia": "^1.4.30",
         "mongodb": "^7.7.0",
         "redis": "^6.3.0",

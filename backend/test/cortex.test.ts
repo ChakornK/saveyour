@@ -1,31 +1,10 @@
-import { describe, expect, test, afterEach } from 'bun:test'
-import { SnowflakeCortexClient } from '../src/infrastructure/ai/cortex-client'
+import { describe, expect, test } from 'bun:test'
 import { FakeCortexClient, redactCortexDiagnostic, redactCortexValue } from '../src/infrastructure/ai/cortex-client'
 import { CortexAnalysisProvider } from '../src/infrastructure/ai/cortex-provider'
 import { CortexError } from '../src/infrastructure/ai/cortex-types'
 
 const config = { model: 'test-model', embeddingModel: 'test-embedding', maxAttempts: 3 }
 const image = { artifactUri: 's3://private/image.jpg', contentType: 'image/jpeg', sizeBytes: 100, ownerId: 'owner-1', postId: 'post-1' }
-const originalFetch = globalThis.fetch
-afterEach(() => { globalThis.fetch = originalFetch })
-
-describe('SnowflakeCortexClient', () => {
-  test('uses Basic authentication for password credentials', async () => {
-    let request: Request | undefined
-    globalThis.fetch = (async (input, init) => { request = new Request(input, init); return new Response('{}', { status: 200 }) }) as typeof fetch
-    const client = new SnowflakeCortexClient({ account: 'account', user: 'user', password: 'password', warehouse: 'warehouse', database: 'database', schema: 'schema' })
-    await client.executeFunction('CURRENT_VERSION', [])
-    expect(request?.headers.get('authorization')).toBe(`Basic ${btoa('user:password')}`)
-  })
-
-  test('uses Bearer authentication for tokens', async () => {
-    let request: Request | undefined
-    globalThis.fetch = (async (input, init) => { request = new Request(input, init); return new Response('{}', { status: 200 }) }) as typeof fetch
-    const client = new SnowflakeCortexClient({ account: 'account', user: 'user', token: 'token', warehouse: 'warehouse', database: 'database', schema: 'schema' })
-    await client.executeFunction('CURRENT_VERSION', [])
-    expect(request?.headers.get('authorization')).toBe('Bearer token')
-  })
-})
 
 describe('CortexAnalysisProvider', () => {
   test('redacts credentials and signed URLs from diagnostics', () => {

@@ -3,12 +3,13 @@ import type { SearchService } from "./service";
 import type { SearchFilters } from "./contracts";
 import type { TagSuggestionService } from "./suggestions";
 import { requireOwner } from "../auth/owner-scope";
+import { authContext } from "../auth/context";
 
 export const searchRoutes = (
   service: SearchService,
   suggestions?: TagSuggestionService,
 ) =>
-  new Elysia({ prefix: "/v1/search" })
+  new Elysia({ prefix: "/v1/search" }).use(authContext(service as never))
     .get(
       "/",
       async ({ query, headers, set }) => {

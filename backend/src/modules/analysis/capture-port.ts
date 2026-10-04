@@ -6,7 +6,9 @@ import {
 } from "./integration-contract";
 
 export interface CaptureTransactionStore {
-  createPostAndJob(input: CaptureInput & { idempotencyKey: string }): Promise<JobReceipt>;
+  createPostAndJob(
+    input: CaptureInput & { idempotencyKey: string },
+  ): Promise<JobReceipt>;
   findCaptureByIdempotencyKey(key: string): Promise<JobReceipt | undefined>;
 }
 
@@ -18,7 +20,8 @@ export class CaptureTransactionPort implements AnalysisPersistencePort {
       input.ownerId,
       input.analysis.idempotencyKey,
     );
-    const existing = await this.store.findCaptureByIdempotencyKey(idempotencyKey);
+    const existing =
+      await this.store.findCaptureByIdempotencyKey(idempotencyKey);
     if (existing) return { ...existing, replayed: true };
 
     return this.store.createPostAndJob({ ...input, idempotencyKey });

@@ -4,11 +4,12 @@ import { InMemoryIntegrationMetrics } from "../src/modules/analysis/metrics";
 
 test("readiness reports failed dependencies", async () => {
   const health = await checkIntegrationHealth({
-    redis: async () => true,
+    redis: async () => false,
     seaweedfs: async () => true,
     cortex: async () => true,
   });
-  expect(health.ready).toBe(true);
+  expect(health.ready).toBe(false);
+  expect(health.dependencies.redis).toBe(false);
 });
 
 test("metrics retain correlation IDs and operational counters", () => {
@@ -17,7 +18,11 @@ test("metrics retain correlation IDs and operational counters", () => {
   metrics.leaseConflict("corr-1");
   metrics.retryExhausted("corr-1");
   metrics.outboxBacklog(3);
-  expect(metrics.latencies[0]).toEqual({ stage: "transcription", milliseconds: 42, correlationId: "corr-1" });
+  expect(metrics.latencies[0]).toEqual({
+    stage: "transcription",
+    milliseconds: 42,
+    correlationId: "corr-1",
+  });
   expect(metrics.leaseConflicts).toBe(1);
   expect(metrics.retriesExhausted).toBe(1);
   expect(metrics.backlog).toBe(3);

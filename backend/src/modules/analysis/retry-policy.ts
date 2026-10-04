@@ -1,11 +1,18 @@
-import type { ClassifiedFailure, FailureCategory } from "./integration-contract";
+import type {
+  ClassifiedFailure,
+  FailureCategory,
+} from "./integration-contract";
 
 export interface RetryDecision {
   retry: boolean;
   nextAttemptAt?: string;
 }
 
-const retryableCategories = new Set<FailureCategory>(["transient", "persistence", "media"]);
+const retryableCategories = new Set<FailureCategory>([
+  "transient",
+  "persistence",
+  "media",
+]);
 
 export const classifyFailure = (
   category: FailureCategory,
@@ -29,6 +36,14 @@ export const retryDecision = (
   jitter = Math.random(),
 ): RetryDecision => {
   if (!failure.retryable) return { retry: false };
-  const delay = Math.min(baseDelayMs * 2 ** Math.max(0, failure.attempt - 1), 60_000);
-  return { retry: true, nextAttemptAt: new Date(Date.now() + delay + Math.floor(delay * jitter)).toISOString() };
+  const delay = Math.min(
+    baseDelayMs * 2 ** Math.max(0, failure.attempt - 1),
+    60_000,
+  );
+  return {
+    retry: true,
+    nextAttemptAt: new Date(
+      Date.now() + delay + Math.floor(delay * jitter),
+    ).toISOString(),
+  };
 };

@@ -32,6 +32,9 @@ class SavedPost {
     this.albums = const [],
     this.color = 0xFF00D696,
     this.tags = const [],
+    this.analysisStatus,
+    this.sourceUrl,
+    this.capturedAt,
   });
   final String id;
   final String title;
@@ -45,6 +48,9 @@ class SavedPost {
   final List<String> albums;
   final int color;
   final List<String> tags;
+  final String? analysisStatus;
+  final String? sourceUrl;
+  final DateTime? capturedAt;
 }
 
 class Album {
@@ -102,6 +108,7 @@ abstract interface class AlbumRepository {
   Future<Album> createAlbum(String name);
   Future<void> addToAlbum(String postId, String albumId);
   Future<void> removeFromAlbum(String postId, String albumId);
+  Future<Album> renameAlbum(String albumId, String name);
   Future<List<Album>> listAlbums({
     String query = '',
     Set<String> tags = const {},
@@ -247,17 +254,26 @@ class MockAppRepository
         .toList();
   }
 
+  final Set<String> _albumNames = {'Travel', 'Food', 'Ideas'};
+
   @override
   Future<List<Album>> listAlbums({
     String query = '',
     Set<String> tags = const {},
   }) async {
     final albums = <String, List<SavedPost>>{};
+    for (final name in _albumNames) {
+      albums[name] = [];
+    }
     for (final post in _posts)
-      for (final album in post.albums)
+      for (final album in post.albums) {
         albums.putIfAbsent(album, () => []).add(post);
+      }
     final needle = query.toLowerCase();
     return albums.entries
+        .where(
+          (entry) => entry.value.isNotEmpty || _albumNames.contains(entry.key),
+        )
         .map(
           (entry) => Album(
             id: entry.key.toLowerCase(),
@@ -306,8 +322,9 @@ class MockAppRepository
   @override
   Future<void> saveLink(String url) async {
     if (Uri.tryParse(url.trim())?.scheme case final scheme?
-        when !['http', 'https'].contains(scheme))
+        when !['http', 'https'].contains(scheme)) {
       throw const FormatException('Enter a valid public link.');
+    }
   }
 
   @override
@@ -317,9 +334,12 @@ class MockAppRepository
   Future<Album> createAlbum(String name) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) throw const FormatException('Album name is required.');
-    if (_posts.any((p) => p.albums.contains(trimmed))) {
+    if (_albumNames.any(
+      (name) => name.toLowerCase() == trimmed.toLowerCase(),
+    )) {
       throw const FormatException('That album already exists.');
     }
+    _albumNames.add(trimmed);
     return Album(
       id: trimmed.toLowerCase(),
       name: trimmed,
@@ -328,6 +348,39 @@ class MockAppRepository
       tags: const {},
       updatedAt: DateTime.now(),
       visibility: AlbumVisibility.private,
+    );
+  }
+
+  @override
+  Future<Album> renameAlbum(String albumId, String name) async {
+    final album = (await listAlbums()).firstWhere((item) => item.id == albumId);
+    final oldName = album.name;
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) throw const FormatException('Album name is required.');
+    for (var index = 0; index < _posts.length; index++) {
+      final post = _posts[index];
+      if (!post.albums.contains(oldName)) continue;
+      _posts[index] = SavedPost(
+        id: post.id,
+        title: post.title,
+        description: post.description,
+        platform: post.platform,
+        mediaKind: post.mediaKind,
+        thumbnailUrl: post.thumbnailUrl,
+        mediaUrls: post.mediaUrls,
+        username: post.username,
+        profileImageUrl: post.profileImageUrl,
+        albums: post.albums
+            .map((item) => item == oldName ? trimmed : item)
+            .toList(),
+        color: post.color,
+        tags: post.tags,
+      );
+    }
+    _albumNames.remove(oldName);
+    _albumNames.add(trimmed);
+    return (await listAlbums()).firstWhere(
+      (item) => item.id == trimmed.toLowerCase(),
     );
   }
 

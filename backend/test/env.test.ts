@@ -44,7 +44,7 @@ describe('loadConfig', () => {
       snowflakeEndpoint: undefined,
       cortexModel: 'claude-3-5-sonnet',
       cortexEmbeddingModel: 'snowflake-arctic-embed-m-v1.5',
-      cortexTimeoutMs: 10000,
+      cortexTimeoutMs: 120000,
       cortexMaxAttempts: 3
     })
   })

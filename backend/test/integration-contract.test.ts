@@ -5,7 +5,10 @@ import {
   SchemaCompatibilityError,
 } from "../src/modules/analysis/integration-contract";
 import { InMemoryLeaseStore } from "../src/modules/analysis/leases";
-import { classifyFailure, retryDecision } from "../src/modules/analysis/retry-policy";
+import {
+  classifyFailure,
+  retryDecision,
+} from "../src/modules/analysis/retry-policy";
 
 describe("analysis integration contract", () => {
   test("accepts the supported schema and rejects unknown versions", () => {
@@ -19,15 +22,31 @@ describe("analysis integration contract", () => {
 
   test("rejects stale lease owners", async () => {
     const store = new InMemoryLeaseStore();
-    const first = await store.acquire("job-1", "worker-a", new Date(0).toISOString(), new Date(100_000).toISOString());
+    const first = await store.acquire(
+      "job-1",
+      "worker-a",
+      new Date(0).toISOString(),
+      new Date(100_000).toISOString(),
+    );
     expect(first).toBeDefined();
-    const reclaimed = await store.acquire("job-1", "worker-b", new Date(200_000).toISOString(), new Date(300_000).toISOString());
+    const reclaimed = await store.acquire(
+      "job-1",
+      "worker-b",
+      new Date(200_000).toISOString(),
+      new Date(300_000).toISOString(),
+    );
     expect(reclaimed?.owner).toBe("worker-b");
     expect(await store.isCurrent(first!)).toBe(false);
   });
 
   test("does not retry capability failures", () => {
-    const failure = classifyFailure("capability", "UNSUPPORTED", new Error("unsupported"), 1, "corr");
+    const failure = classifyFailure(
+      "capability",
+      "UNSUPPORTED",
+      new Error("unsupported"),
+      1,
+      "corr",
+    );
     expect(retryDecision(failure).retry).toBe(false);
   });
 });
