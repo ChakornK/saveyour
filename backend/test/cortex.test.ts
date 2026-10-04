@@ -64,6 +64,12 @@ describe('CortexAnalysisProvider', () => {
     expect(calls).toBe(0)
   })
 
+  test('reports Cortex capability status', async () => {
+    const client = new FakeCortexClient()
+    const result = await new CortexAnalysisProvider(client, config).checkCapabilities()
+    expect(result).toMatchObject({ status: 'available', functions: { AI_COMPLETE: true, AI_TRANSCRIBE: true, AI_EMBED: true } })
+  })
+
   test('does not retry capability errors', async () => {
     let attempts = 0
     const client = new FakeCortexClient(() => { attempts += 1; throw new CortexError('capability', 'AI_TRANSCRIBE unavailable') })
