@@ -17,6 +17,8 @@ export interface CortexClient {
   close(): Promise<void>
 }
 
+export interface CortexOperationMetrics { operation: string; attempts: number; latencyMs: number; outcome: 'success' | 'failure' }
+
 export interface CortexCapabilities {
   status: 'available' | 'unavailable'
   functions: Record<string, boolean>
