@@ -32,6 +32,7 @@ export const loadConfig = (env: Record<string, string | undefined> = Bun.env): A
   const mongoUri = env.MONGO_URI ?? 'mongodb://127.0.0.1:27017'
   const mongoDatabase = env.MONGO_DATABASE ?? 'saveyour-tech'
   if (appEnv === 'production' && (!env.MONGO_URI || !env.MONGO_DATABASE)) throw new Error('MONGO_URI and MONGO_DATABASE are required in production')
+  if (appEnv === 'production' && (!env.REDIS_URL || !env.SEARCH_URL || !env.GEMINI_API_KEY)) throw new Error('REDIS_URL, SEARCH_URL, and GEMINI_API_KEY are required in production')
   const geminiTimeoutMs = Number(env.GEMINI_TIMEOUT_MS ?? 10_000)
   const geminiMaxAttempts = Number(env.GEMINI_MAX_ATTEMPTS ?? 3)
   if (!Number.isInteger(geminiTimeoutMs) || geminiTimeoutMs < 100) throw new Error('GEMINI_TIMEOUT_MS must be at least 100')

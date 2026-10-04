@@ -24,6 +24,8 @@ import { SearchEventDelivery } from './infrastructure/search/event-index-deliver
 import { GeminiProvider } from './infrastructure/ai/gemini-provider'
 import { InMemoryJobQueue } from './modules/analysis/queue'
 import { QueuePublisher } from './modules/analysis/queue-publisher'
+import { RedisClientAdapter } from './infrastructure/queue/redis-client'
+import { RedisJobQueue } from './infrastructure/queue/redis-queue'
 import { captureRoutes } from './modules/capture/routes'
 import { initializeSearchIndex } from './infrastructure/search/index-init'
 
@@ -37,6 +39,7 @@ export const createApp = (config: AppConfig) => {
   const searchIndex = searchConfig ? new OpenSearchIndex(searchConfig) : new InMemorySearchIndex()
   const searchService = new SearchService(searchIndex)
   const initialize = async () => {
+    if (redis) await redis.connect()
     if (mongo) {
       await mongo.connect()
       await Promise.all([
@@ -51,7 +54,8 @@ export const createApp = (config: AppConfig) => {
   const metrics = new InMemoryAnalysisMetrics()
   const provider = useProduction && config.geminiApiKey ? new GeminiProvider({ apiKey: config.geminiApiKey, model: config.geminiModel, timeoutMs: config.geminiTimeoutMs, maxAttempts: config.geminiMaxAttempts }) : new FakeAiProvider()
   const pipeline = new AnalysisPipeline(source, derivedStore, provider)
-  const queue = new InMemoryJobQueue(repository)
+  const redis = useProduction && config.redisUrl ? new RedisClientAdapter(config.redisUrl) : undefined
+  const queue = redis ? new RedisJobQueue(redis, repository) : new InMemoryJobQueue(repository)
   const orchestrator = new AnalysisOrchestrator(repository, pipeline, 3, undefined, new QueuePublisher(queue))
   const app = new Elysia({ name: 'saveyour-tech-api' })
     .use(openapi({ documentation: { info: { title: 'saveyour.tech API', version: '0.1.0' } } }))
@@ -62,5 +66,5 @@ export const createApp = (config: AppConfig) => {
     .use(captureRoutes(source, orchestrator))
     .use(searchRoutes(searchService, new TagSuggestionService(derivedStore)))
     .get('/', () => ({ name: 'saveyour.tech API', status: 'ok' as const, version: '0.1.0' }))
-  return Object.assign(app, { initialize, close: async () => mongo?.close() })
+  return Object.assign(app, { initialize, close: async () => { await redis?.close(); await mongo?.close() } })
 }
