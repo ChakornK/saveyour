@@ -14,6 +14,7 @@ export interface ClipTaggerConfig {
   modelPath: string;
   labels: string[];
   timeoutMs?: number;
+  tokenizerPath?: string;
 }
 
 export class OnnxClipImageTagger implements ImageTagger {
@@ -36,6 +37,7 @@ export class OnnxClipImageTagger implements ImageTagger {
       pixels[2 * 224 * 224 + target] = (data[source + 2] / 255 - 0.40821073) / 0.27577711;
     }
     const session = await this.getSession();
+    if (session.inputNames.includes("input_ids")) throw new Error("CLIP model requires tokenizer inputs; configure a tokenizer-aware model");
     const inputName = session.inputNames.find((name) => name === "pixel_values");
     if (!inputName) throw new Error("ONNX model has no pixel_values input");
     const outputName = session.outputNames.find((name) => name === "image_embeds");
