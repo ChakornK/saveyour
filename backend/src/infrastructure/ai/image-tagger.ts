@@ -20,6 +20,12 @@ export interface ImageTaggerMetrics {
   modelVersion?: string;
   outcome: "success" | "empty" | "error";
 }
+
+export class InMemoryImageTaggerMetrics {
+  private readonly values: ImageTaggerMetrics[] = [];
+  record(value: ImageTaggerMetrics) { this.values.push({ ...value }); }
+  snapshot() { return this.values.map((value) => ({ ...value })); }
+}
 export interface ClipTaggerConfig { visionModelPath: string; textModelPath?: string; tokenizerPath?: string; tokenizerConfigPath?: string; labels: string[]; threshold?: number; maxBytes?: number; timeoutMs?: number; modelVersion?: string; onMetrics?: (metrics: ImageTaggerMetrics) => void }
 
 export class OnnxClipImageTagger implements ImageTagger {
@@ -92,7 +98,8 @@ export class OnnxClipImageTagger implements ImageTagger {
     const imageEmbedding = embedding.map((value) => value / norm);
     const inferenceMs = performance.now() - inferenceStarted;
     if (!this.config.textModelPath || !this.config.tokenizerPath || !this.config.tokenizerConfigPath) { this.emit({ payloadBytes, preprocessingMs, inferenceMs, modelVersion: this.config.modelVersion, outcome: "empty" }); return []; }
-    const tags = await Promise.all(this.config.labels.map(async (label) => {
+    const labels = [...new Set(this.config.labels.map((label) => label.trim().toLocaleLowerCase()).filter(Boolean))];
+    const tags = await Promise.all(labels.map(async (label) => {
       const text = await this.textEmbedding(label);
       const similarity = imageEmbedding.reduce((sum, value, index) => sum + value * (text[index] ?? 0), 0);
       return { label, confidence: Math.max(0, Math.min(1, (similarity + 1) / 2)) };
