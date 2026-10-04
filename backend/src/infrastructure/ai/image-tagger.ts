@@ -21,13 +21,10 @@ export class OnnxClipImageTagger implements ImageTagger {
     const tokenizer = await this.getTokenizer();
     const encoded = tokenizer.encode(`a photo of a ${label}`);
     const ids = Int32Array.from(encoded.ids);
-    const mask = Int32Array.from(encoded.attention_mask);
     const session = await this.getText();
-    const inputs: Record<string, ort.Tensor> = {};
-    for (const name of session.inputNames) {
-      if (name === "input_ids") inputs[name] = new ort.Tensor("int64", BigInt64Array.from(ids, BigInt), [1, ids.length]);
-      else if (name === "attention_mask") inputs[name] = new ort.Tensor("int64", BigInt64Array.from(mask, BigInt), [1, mask.length]);
-    }
+    const inputName = session.inputNames.find((name) => name === "input_ids");
+    if (!inputName) throw new Error("ONNX text model has no input_ids input");
+    const inputs: Record<string, ort.Tensor> = { [inputName]: new ort.Tensor("int64", BigInt64Array.from(ids, BigInt), [1, ids.length]) };
     const outputName = session.outputNames.find((name) => name === "text_embeds") ?? session.outputNames[0];
     if (!outputName) throw new Error("ONNX text model has no output");
     const output = await session.run(inputs);
