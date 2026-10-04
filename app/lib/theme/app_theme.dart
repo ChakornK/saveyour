@@ -23,13 +23,38 @@ abstract final class AppTheme {
         filled: true,
         fillColor: AppColors.paper,
         border: OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(5)),
           borderSide: BorderSide(color: AppColors.ink, width: 2),
         ),
         enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(5)),
           borderSide: BorderSide(color: AppColors.ink, width: 2),
         ),
         focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(5)),
           borderSide: BorderSide(color: AppColors.ink, width: 3),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(44, 44),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+          side: const BorderSide(color: AppColors.ink, width: 2),
+          elevation: 0,
+          shadowColor: AppColors.ink,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(44, 44),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+          side: const BorderSide(color: AppColors.ink, width: 2),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          minimumSize: const Size(44, 44),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
         ),
       ),
     );
