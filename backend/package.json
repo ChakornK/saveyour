@@ -19,8 +19,9 @@
     "redis": "^6.3.0"
   },
   "devDependencies": {
+    "@scalar/types": "^0.22.4",
     "@types/bun": "latest",
     "prettier": "latest",
-    "typescript": "latest"
+    "typescript": "5.9.3"
   }
 }
