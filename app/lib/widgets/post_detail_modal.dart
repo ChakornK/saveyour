@@ -10,21 +10,29 @@ class PostDetailModal extends StatelessWidget {
     required this.post,
     required this.onDelete,
     required this.onRemoveFromAlbum,
+    this.onAddToAlbum,
+    this.listAlbums,
   });
   final SavedPost post;
   final VoidCallback onDelete;
   final ValueChanged<String> onRemoveFromAlbum;
+  final Future<void> Function(String albumId)? onAddToAlbum;
+  final Future<List<Album>> Function()? listAlbums;
 
   static Future<void> show(
     BuildContext context, {
     required SavedPost post,
     required VoidCallback onDelete,
     required ValueChanged<String> onRemoveFromAlbum,
+    Future<void> Function(String albumId)? onAddToAlbum,
+    Future<List<Album>> Function()? listAlbums,
   }) {
     final child = PostDetailModal(
       post: post,
       onDelete: onDelete,
       onRemoveFromAlbum: onRemoveFromAlbum,
+      onAddToAlbum: onAddToAlbum,
+      listAlbums: listAlbums,
     );
     return showModalBottomSheet<void>(
       context: context,
@@ -120,6 +128,25 @@ class PostDetailModal extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
+          if (onAddToAlbum != null && listAlbums != null)
+            FutureBuilder<List<Album>>(
+              future: listAlbums!(),
+              builder: (context, snapshot) => Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: (snapshot.data ?? const <Album>[])
+                    .map(
+                      (album) => FilterChip(
+                        label: Text('Add ${album.name}'),
+                        onSelected: (_) async {
+                          await onAddToAlbum!(album.id);
+                          if (context.mounted) Navigator.pop(context);
+                        },
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
           OutlinedButton.icon(
             onPressed: onDelete,
             icon: const Icon(Icons.delete_outline),
