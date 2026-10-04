@@ -125,16 +125,8 @@ export class AnalysisPipeline implements StageHandler {
       }
     }
     if (stage === "embed") {
-      const embedding = await this.ai.embed({
-        content: [
-          source.sourceText,
-          current.generatedText,
-          current.transcript,
-          ...current.tags,
-        ]
-          .filter(Boolean)
-          .join(" "),
-      });
+      const embeddingText = [source.sourceText, current.generatedText, current.transcript, ...current.tags].filter(Boolean).join(" ");
+      const embedding = await this.ai.embed({ content: embeddingText });
       current.embedding = validateEmbedding(embedding, embedding.length);
     }
     if (!current.completedStages.includes(stage))
