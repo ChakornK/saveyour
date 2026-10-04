@@ -81,19 +81,21 @@ class _HomePageState extends State<HomePage> {
           style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.ink),
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: FilledButton.icon(
-              onPressed: () => FocusScope.of(context).requestFocus(FocusNode()),
-              icon: const Icon(Icons.search),
-              label: const Text('Search'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.emerald,
-                foregroundColor: AppColors.ink,
-                side: const BorderSide(color: AppColors.ink, width: 2),
+          if (_tab == 0)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: FilledButton.icon(
+                onPressed: () =>
+                    FocusScope.of(context).requestFocus(FocusNode()),
+                icon: const Icon(Icons.search),
+                label: const Text('Search'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.emerald,
+                  foregroundColor: AppColors.ink,
+                  side: const BorderSide(color: AppColors.ink, width: 2),
+                ),
               ),
             ),
-          ),
         ],
       ),
       body: Row(
@@ -245,6 +247,8 @@ class _HomePageState extends State<HomePage> {
         _load();
       }
     },
+    onAddToAlbum: (albumId) => _repository.addToAlbum(post.id, albumId),
+    listAlbums: () => _repository.listAlbums(),
     onRemoveFromAlbum: (album) async {
       await _repository.removeFromAlbum(post.id, album);
       if (mounted)
