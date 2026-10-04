@@ -83,14 +83,16 @@ export class AnalysisPipeline implements StageHandler {
         if (asset.mimeType.startsWith("video/") || asset.mimeType.startsWith("audio/")) await this.media.extractAudio(asset);
     }
     if (stage === "describe" || stage === "normalize") {
-      const result = validateGeneratedDescription(
-        await this.ai.describeImage({
-          content: source.media?.[0]
-            ? `data:${source.media[0].mimeType};base64,${Buffer.from(source.media[0].bytes.buffer, source.media[0].bytes.byteOffset, source.media[0].bytes.byteLength).toString("base64")}`
-            : source.sourceText,
-          mimeType: source.media?.[0]?.mimeType,
-        }),
-      );
+      const image = source.media?.[0];
+      const localTags = image && this.imageTagger ? await this.imageTagger.tagImage(image) : [];
+      const result = localTags.length
+        ? { text: `Image containing ${localTags.map((tag) => tag.label).join(", ")}.`, tags: localTags.map((tag) => tag.label) }
+        : validateGeneratedDescription(await this.ai.describeImage({
+            content: image
+              ? `data:${image.mimeType};base64,${Buffer.from(image.bytes.buffer, image.bytes.byteOffset, image.bytes.byteLength).toString("base64")}`
+              : source.sourceText,
+            mimeType: image?.mimeType,
+          }));
       current.generatedText = result.text;
       current.tags = [
         ...new Set(
