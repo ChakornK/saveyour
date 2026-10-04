@@ -1,17 +1,8 @@
 backend/node_modules/
 backend/.env
 backend/dist/
-app/.dart_tool/
-app/build/
-app/.flutter-plugins
-app/.flutter-plugins-dependencies
-app/.idea/
-app/*.iml
 app/linux/flutter/ephemeral/
-app/linux/flutter/generated_plugin_registrant.cc
-app/linux/flutter/generated_plugin_registrant.h
-app/linux/flutter/generated_plugins.cmake
 app/android/app/google-services.json
 app/android/app/google-oauth-client.json
 
-app/android/build/
+**.env
