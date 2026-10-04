@@ -1,0 +1,55 @@
+services:
+  mongodb:
+    image: mongo:8
+    container_name: saveyour-tech-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: saveyour
+      MONGO_INITDB_ROOT_PASSWORD: change-this-password
+      MONGO_INITDB_DATABASE: saveyour-tech
+    volumes:
+      - saveyour-tech-mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand({ ping: 1 })"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: saveyour-tech-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - saveyour-tech-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  opensearch:
+    image: opensearchproject/opensearch:2
+    container_name: saveyour-tech-opensearch
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      DISABLE_SECURITY_PLUGIN: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - saveyour-tech-search-data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+volumes:
+  saveyour-tech-mongo-data:
+  saveyour-tech-search-data:
+  saveyour-tech-redis-data:
