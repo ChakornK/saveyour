@@ -26,16 +26,26 @@ class PostDetailModal extends StatelessWidget {
       onDelete: onDelete,
       onRemoveFromAlbum: onRemoveFromAlbum,
     );
-    return showDialog<void>(
+    return showModalBottomSheet<void>(
       context: context,
-      barrierDismissible: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       barrierColor: Colors.black54,
-      builder: (_) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(20),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 640, maxHeight: 760),
-          child: child,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(12, 24, 12, 12),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640, maxHeight: 760),
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                boxShadow: [
+                  BoxShadow(color: AppColors.ink, offset: Offset(6, 6)),
+                ],
+              ),
+              child: child,
+            ),
+          ),
         ),
       ),
     );

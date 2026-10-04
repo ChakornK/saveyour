@@ -64,13 +64,14 @@ class _AlbumsPageState extends State<AlbumsPage> {
         itemBuilder: (_, i) => _AlbumTile(
           album: albums[i],
           onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => AlbumDetailPage(
-                  albumId: albums[i].id,
-                  repository: widget.repository,
-                  onOpenPost: widget.onOpenPost,
-                ),
+            showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => AlbumDetailPage(
+                albumId: albums[i].id,
+                repository: widget.repository,
+                onOpenPost: widget.onOpenPost,
               ),
             );
           },
