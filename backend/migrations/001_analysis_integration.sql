@@ -1,3 +1,11 @@
+CREATE TABLE IF NOT EXISTS posts (
+  id CHAR(36) PRIMARY KEY,
+  owner_id CHAR(36) NOT NULL,
+  canonical_url VARCHAR(2048) NOT NULL,
+  created_at TIMESTAMP(3) NOT NULL,
+  UNIQUE KEY posts_owner_url (owner_id, canonical_url(255))
+);
+
 CREATE TABLE IF NOT EXISTS analysis_jobs (
   id CHAR(36) PRIMARY KEY,
   owner_id CHAR(36) NOT NULL,
@@ -55,6 +63,31 @@ CREATE TABLE IF NOT EXISTS analysis_stage_states (
   payload JSON,
   updated_at TIMESTAMP(3) NOT NULL,
   PRIMARY KEY (job_id, stage)
+);
+
+CREATE TABLE IF NOT EXISTS analysis_transcript_segments (
+  result_key VARCHAR(255) NOT NULL,
+  segment_index INT NOT NULL,
+  text TEXT NOT NULL,
+  start_ms BIGINT NOT NULL,
+  end_ms BIGINT NOT NULL,
+  PRIMARY KEY (result_key, segment_index)
+);
+
+CREATE TABLE IF NOT EXISTS analysis_embeddings (
+  result_key VARCHAR(255) PRIMARY KEY,
+  modality VARCHAR(32) NOT NULL,
+  model VARCHAR(255) NOT NULL,
+  vector JSON NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS analysis_search_documents (
+  document_id VARCHAR(255) PRIMARY KEY,
+  owner_id CHAR(36) NOT NULL,
+  post_id CHAR(36) NOT NULL,
+  payload JSON NOT NULL,
+  updated_at TIMESTAMP(3) NOT NULL,
+  KEY analysis_search_owner_post (owner_id, post_id)
 );
 
 CREATE TABLE IF NOT EXISTS analysis_results (

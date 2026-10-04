@@ -89,7 +89,17 @@ export class SqlTiDBIntegrationPort implements TiDBIntegrationPort {
       const guarded = await tx.query<{ job_id: string }>("SELECT id AS job_id FROM analysis_jobs WHERE id = ? AND lease_owner = ? AND lease_version = ?", [completion.jobId, lease.owner, lease.version]);
       if (!guarded[0]) throw new Error("STALE_LEASE");
       for (const result of completion.results) {
-        await tx.query("INSERT INTO analysis_results (result_key, job_id, post_id, media_asset_id, payload, created_at) VALUES (?, ?, ?, ?, ?, ?)", [`${completion.completionIdempotencyKey}:${result.mediaAssetId ?? "post"}`, completion.jobId, completion.postId, result.mediaAssetId ?? null, JSON.stringify(result), new Date().toISOString()]);
+        const resultKey = `${completion.completionIdempotencyKey}:${result.mediaAssetId ?? "post"}`;
+        await tx.query("INSERT INTO analysis_results (result_key, job_id, post_id, media_asset_id, payload, created_at) VALUES (?, ?, ?, ?, ?, ?)", [resultKey, completion.jobId, completion.postId, result.mediaAssetId ?? null, JSON.stringify(result), new Date().toISOString()]);
+        for (const [index, segment] of (result.transcript?.segments ?? []).entries()) {
+          await tx.query("INSERT INTO analysis_transcript_segments (result_key, segment_index, text, start_ms, end_ms) VALUES (?, ?, ?, ?, ?)", [resultKey, index, segment.text, segment.startMs, segment.endMs]);
+        }
+        for (const embedding of [result.textEmbedding, result.multimodalEmbedding]) {
+          if (embedding) await tx.query("INSERT INTO analysis_embeddings (result_key, modality, model, vector) VALUES (?, ?, ?, ?)", [resultKey, embedding.modality, embedding.model, JSON.stringify(embedding.vector)]);
+        }
+      }
+      if (completion.searchDocument) {
+        await tx.query("INSERT INTO analysis_search_documents (document_id, owner_id, post_id, payload, updated_at) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE payload = VALUES(payload), updated_at = VALUES(updated_at)", [completion.searchDocument.documentId, completion.searchDocument.ownerId, completion.searchDocument.postId, JSON.stringify(completion.searchDocument), new Date().toISOString()]);
       }
       for (const stage of completion.completedStages) {
         await tx.query("INSERT INTO analysis_stage_states (job_id, stage, status, attempts, payload, updated_at) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status), attempts = VALUES(attempts), payload = VALUES(payload), updated_at = VALUES(updated_at)", [completion.jobId, stage.stage, stage.status, stage.attempts, JSON.stringify(stage), stage.updatedAt]);
