@@ -9,7 +9,11 @@ import 'session_store.dart';
 class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
   ApiClient({
     http.Client? client,
-    this.baseUrl = 'http://localhost:3000',
+    this.baseUrl = const String.fromEnvironment(
+      'SAVEYOUR_API_BASE_URL',
+      defaultValue:
+          'https://heading-laboratory-implement-admission.trycloudflare.com',
+    ),
     SessionStore? sessions,
     this.timeout = const Duration(seconds: 15),
   })  : _client = client ?? http.Client(),
