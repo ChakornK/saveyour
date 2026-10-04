@@ -18,10 +18,11 @@ export const profileRoutes = (auth: AuthService, captures: CaptureService) =>
     for (const post of posts) {
       sources.add(post.platform);
     }
+    const account = await auth.getAccount(ownerId);
     return {
-      displayName: ownerId,
-      username: ownerId,
-      avatarUrl: null,
+      displayName: account?.name ?? account?.email ?? ownerId,
+      username: account?.email ?? ownerId,
+      avatarUrl: account?.picture ?? null,
       savedPostCount: posts.length,
       albumCount: 0,
       sourceCount: sources.size,

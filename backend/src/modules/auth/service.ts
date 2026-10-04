@@ -13,6 +13,8 @@ export interface GoogleClaims {
 export interface VerifiedGoogleIdentity {
   subject: string;
   email: string;
+  name?: string;
+  picture?: string;
   issuer: string;
   audience: string;
   expiresAt: number;
@@ -22,6 +24,8 @@ export interface Account {
   provider: "google";
   googleSubject: string;
   email: string;
+  name?: string;
+  picture?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -79,6 +83,9 @@ export class InMemoryAccountRepository implements AccountRepository {
   async findByGoogleSubject(subject: string) {
     return this.accounts.get(subject);
   }
+  async findById(id: string) {
+    return [...this.accounts.values()].find((account) => account.id === id);
+  }
   async create(account: Account) {
     this.accounts.set(account.googleSubject, account);
     return account;
@@ -132,12 +139,20 @@ export class AuthService {
         "Google authorization is not configured",
       );
     const identity = await this.verifier.verify(idToken, expected);
-    return this.createSession(identity.subject, identity.email, ttlSeconds);
+    return this.createSession(
+      identity.subject,
+      identity.email,
+      ttlSeconds,
+      identity.name,
+      identity.picture,
+    );
   }
   private async createSession(
     subject: string,
     email: string,
     ttlSeconds: number,
+    name?: string,
+    picture?: string,
   ) {
     let account = await this.accounts.findByGoogleSubject(subject);
     if (!account)
@@ -146,6 +161,8 @@ export class AuthService {
         provider: "google",
         googleSubject: subject,
         email: email.trim().toLowerCase(),
+        ...(name ? { name } : {}),
+        ...(picture ? { picture } : {}),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
@@ -170,6 +187,13 @@ export class AuthService {
       throw new AuthError("AUTH_EXPIRED", "Session expired or revoked");
     return { ownerId: session.accountId };
   }
+  async getAccount(accountId: string) {
+    const repository = this.accounts as AccountRepository & {
+      findById?: (id: string) => Promise<Account | undefined>;
+    };
+    return repository.findById?.(accountId);
+  }
+
   async revoke(token: string) {
     const tokenHash = hashToken(token);
     if (this.redis) void this.redis.del(`auth:session:${tokenHash}`);
@@ -279,6 +303,8 @@ export class GoogleWebCryptoVerifier implements GoogleTokenVerifier {
       return {
         subject: claims.sub,
         email: claims.email,
+        ...(typeof claims.name === "string" ? { name: claims.name } : {}),
+        ...(typeof claims.picture === "string" ? { picture: claims.picture } : {}),
         issuer: claims.iss,
         audience: claims.aud,
         expiresAt: claims.exp,

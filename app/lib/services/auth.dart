@@ -24,11 +24,15 @@ class AuthSession {
     required this.accountId,
     required this.email,
     required this.token,
+    this.name,
+    this.picture,
   });
 
   final String accountId;
   final String email;
   final String token;
+  final String? name;
+  final String? picture;
 
   factory AuthSession.fromJson(Map<String, dynamic> json) {
     final account = json['account'];
@@ -41,7 +45,13 @@ class AuthSession {
         'Backend returned an incomplete sign-in response.',
       );
     }
-    return AuthSession(accountId: accountId, email: email, token: token);
+    return AuthSession(
+      accountId: accountId,
+      email: email,
+      token: token,
+      name: accountMap?['name'] as String?,
+      picture: accountMap?['picture'] as String?,
+    );
   }
 }
 

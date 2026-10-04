@@ -23,13 +23,18 @@ export const createAuthRoutes = (config: AppConfig, auth: AuthService) =>
         parse: "json",
       },
     )
-    .get("/auth/me", async ({ headers }) => ({
-      accountId: (
-        await auth.authenticate(
-          headers.authorization?.replace(/^Bearer\s+/i, "") ?? "",
-        )
-      ).ownerId,
-    }))
+    .get("/auth/me", async ({ headers }) => {
+      const accountId = auth.authenticate(
+        headers.authorization?.replace(/^Bearer\s+/i, "") ?? "",
+      ).ownerId;
+      const account = await auth.getAccount(accountId);
+      return {
+        accountId,
+        name: account?.name ?? null,
+        email: account?.email ?? null,
+        picture: account?.picture ?? null,
+      };
+    })
     .post("/auth/sign-out", async ({ headers }) => {
       const token = headers.authorization?.replace(/^Bearer\s+/i, "");
       if (token) await auth.revoke(token);
