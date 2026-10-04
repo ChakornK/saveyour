@@ -1,7 +1,7 @@
 FROM oven/bun:1-debian
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ffmpeg ca-certificates python3 python3-pip \
+  && apt-get install -y --no-install-recommends ffmpeg ca-certificates curl python3 python3-pip \
   && pip3 install --no-cache-dir --break-system-packages yt-dlp \
   && rm -rf /var/lib/apt/lists/*
 
