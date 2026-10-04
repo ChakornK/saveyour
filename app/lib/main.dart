@@ -160,13 +160,7 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       floatingActionButton: _tab == 0
-          ? FloatingActionButton.extended(
-              onPressed: _showSaveDialog,
-              backgroundColor: AppColors.emerald,
-              foregroundColor: AppColors.ink,
-              icon: const Icon(Icons.add_link),
-              label: const Text('Save link'),
-            )
+          ? _BrutalFab(onPressed: _showSaveDialog)
           : null,
       bottomNavigationBar: wide
           ? null
@@ -270,24 +264,7 @@ class _HomePageState extends State<HomePage> {
     final controller = TextEditingController();
     final url = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Save a link'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'https://…'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+      builder: (context) => _SaveLinkDialog(controller: controller),
     );
     if (url != null) await _showSaveDialogForUrl(url);
   }
@@ -335,6 +312,126 @@ class _HomePageState extends State<HomePage> {
             .showSnackBar(SnackBar(content: Text('Removed from $album')));
       }
     },
+  );
+}
+
+class _BrutalFab extends StatefulWidget {
+  const _BrutalFab({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  State<_BrutalFab> createState() => _BrutalFabState();
+}
+
+class _BrutalFabState extends State<_BrutalFab> {
+  bool pressed = false;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: 'Save link',
+    child: GestureDetector(
+      onTap: widget.onPressed,
+      onTapDown: (_) => setState(() => pressed = true),
+      onTapUp: (_) => setState(() => pressed = false),
+      onTapCancel: () => setState(() => pressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 110),
+        transform: Matrix4.translationValues(
+          pressed ? 2 : 0,
+          pressed ? 2 : 0,
+          0,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+        decoration: BoxDecoration(
+          color: AppColors.emerald,
+          border: Border.all(color: AppColors.ink, width: 2),
+          borderRadius: BorderRadius.circular(5),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.ink,
+              offset: Offset(pressed ? 2 : 4, pressed ? 2 : 4),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.add_link),
+            SizedBox(width: 8),
+            Text('SAVE LINK', style: TextStyle(fontWeight: FontWeight.w900)),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _SaveLinkDialog extends StatelessWidget {
+  const _SaveLinkDialog({required this.controller});
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) => Dialog(
+    insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+    child: BrutalSurface(
+      padding: const EdgeInsets.all(20),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'SAVE A LINK',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Close save dialog',
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text('Capture a post now. You can organize it later.'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: TextInputType.url,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => Navigator.pop(context, controller.text),
+              decoration: const InputDecoration(
+                labelText: 'Post URL',
+                hintText: 'https://…',
+                prefixIcon: Icon(Icons.link),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('CANCEL'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  onPressed: () => Navigator.pop(context, controller.text),
+                  icon: const Icon(Icons.add_link),
+                  label: const Text('SAVE LINK'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
   );
 }
 

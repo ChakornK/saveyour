@@ -147,15 +147,7 @@ class PostDetailModal extends StatelessWidget {
                     .toList(),
               ),
             ),
-          OutlinedButton.icon(
-            onPressed: onDelete,
-            icon: const Icon(Icons.delete_outline),
-            label: const Text('Remove saved post'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red.shade700,
-              side: BorderSide(color: Colors.red.shade700),
-            ),
-          ),
+          _DangerActionButton(onPressed: onDelete),
         ],
       ),
     ),
@@ -166,6 +158,65 @@ class PostDetailModal extends StatelessWidget {
     child: Text(
       post.description,
       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+    ),
+  );
+}
+
+class _DangerActionButton extends StatefulWidget {
+  const _DangerActionButton({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  State<_DangerActionButton> createState() => _DangerActionButtonState();
+}
+
+class _DangerActionButtonState extends State<_DangerActionButton> {
+  bool pressed = false;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: 'Remove saved post',
+    child: GestureDetector(
+      onTap: widget.onPressed,
+      onTapDown: (_) => setState(() => pressed = true),
+      onTapUp: (_) => setState(() => pressed = false),
+      onTapCancel: () => setState(() => pressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 110),
+        transform: Matrix4.translationValues(
+          pressed ? 2 : 0,
+          pressed ? 2 : 0,
+          0,
+        ),
+        constraints: const BoxConstraints(minHeight: 44),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF0F0),
+          border: Border.all(color: AppColors.ink, width: 2),
+          borderRadius: BorderRadius.circular(5),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.ink,
+              offset: Offset(pressed ? 2 : 4, pressed ? 2 : 4),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.delete_outline, color: AppColors.red),
+            SizedBox(width: 8),
+            Text(
+              'Remove saved post',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                color: AppColors.red,
+              ),
+            ),
+          ],
+        ),
+      ),
     ),
   );
 }

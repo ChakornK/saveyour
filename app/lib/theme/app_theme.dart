@@ -76,9 +76,27 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
         ),
       ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.paper,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+        elevation: 0,
+        titleTextStyle: const TextStyle(
+          color: AppColors.ink,
+          fontSize: 22,
+          fontWeight: FontWeight.w900,
+        ),
+        contentTextStyle: const TextStyle(color: AppColors.ink),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+      ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppColors.paper,
         indicatorColor: AppColors.emerald,
+        height: 72,
         labelTextStyle: WidgetStateProperty.all(
           const TextStyle(fontWeight: FontWeight.w800),
         ),
@@ -86,12 +104,21 @@ abstract final class AppTheme {
       navigationRailTheme: const NavigationRailThemeData(
         backgroundColor: AppColors.paper,
         indicatorColor: AppColors.emerald,
+        useIndicator: true,
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: AppColors.emerald,
+        foregroundColor: AppColors.ink,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+        extendedPadding: const EdgeInsets.symmetric(horizontal: 18),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.ink,
         contentTextStyle: const TextStyle(color: AppColors.paper),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
         behavior: SnackBarBehavior.floating,
+        elevation: 0,
       ),
     );
   }
