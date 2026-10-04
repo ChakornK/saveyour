@@ -315,7 +315,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 boxShadow: const [
                   BoxShadow(color: AppColors.ink, offset: Offset(6, 6)),
                 ],
-                image: p.avatarUrl == null
+                image: p.avatarUrl == null || p.avatarUrl!.isEmpty
                     ? null
                     : DecorationImage(
                         image: NetworkImage(p.avatarUrl!),

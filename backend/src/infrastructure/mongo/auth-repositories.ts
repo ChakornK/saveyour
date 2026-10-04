@@ -24,6 +24,13 @@ export class MongoAccountRepository implements AccountRepository {
     await this.collection().insertOne(account);
     return account;
   }
+  async findById(id: string) {
+    return (await this.collection().findOne({ id })) ?? undefined;
+  }
+  async update(account: Account) {
+    await this.collection().replaceOne({ id: account.id }, account);
+    return account;
+  }
   async ensureIndexes() {
     await this.collection().createIndex(
       { provider: 1, googleSubject: 1 },

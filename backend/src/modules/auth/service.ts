@@ -155,9 +155,20 @@ export class AuthService {
     picture?: string,
   ) {
     let account = await this.accounts.findByGoogleSubject(subject);
+    if (account && (name || picture)) {
+      account = {
+        ...account,
+        ...(name ? { name } : {}),
+        ...(picture ? { picture } : {}),
+        updatedAt: new Date().toISOString(),
+      };
+      const repository = this.accounts as AccountRepository & {
+        update?: (value: Account) => Promise<Account>;
+      };
+      if (repository.update) await repository.update(account);
+    }
     if (!account)
-      account = await this.accounts.create({
-        id: randomUUID(),
+      account = await this.accounts.create({        id: randomUUID(),
         provider: "google",
         googleSubject: subject,
         email: email.trim().toLowerCase(),
