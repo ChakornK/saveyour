@@ -3,6 +3,7 @@ import type { AiProvider } from "./provider";
 import type { DerivedPostStore, EventPublisher } from "./events";
 import type { StageHandler } from "./orchestrator";
 import type { MediaProcessor } from "./media";
+import type { ImageTagger } from "../../infrastructure/ai/image-tagger";
 import {
   validateEmbedding,
   validateGeneratedDescription,
@@ -53,6 +54,7 @@ export class AnalysisPipeline implements StageHandler {
     private readonly ai: AiProvider,
     private readonly publisher?: EventPublisher,
     private readonly media?: MediaProcessor,
+    private readonly imageTagger?: ImageTagger,
   ) {}
 
   async run(job: AnalysisJob, stage: AnalysisStage) {
