@@ -32,10 +32,11 @@ Implement and verify a native ONNX image-tagging provider, integrate it with the
   - Keep Gemini as hosted description fallback while local tagging remains available.
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 6. Correct model-output compatibility
+- [x] 6. Correct model-output compatibility
   - Verified the downloaded CLIP artifact exposes `pixel_values` and `image_embeds` alongside text inputs/outputs.
   - Updated inference to select named image tensors instead of positional inputs/outputs.
-  - Current artifact requires tokenizer inputs; semantic zero-shot labels remain blocked until a tokenizer-aware model bundle is provisioned.
+  - Split vision/text models and tokenizer assets are provisioned and verified.
+  - Text inputs and image-text similarity are implemented and validated on a real image.
   - _Requirements: 2.3, 3.3, 4.4_
 
 - [x] 7. Add focused tests
