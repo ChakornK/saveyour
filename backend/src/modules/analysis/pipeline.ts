@@ -3,6 +3,7 @@ import type { AiProvider } from './provider'
 import type { DerivedPostStore, EventPublisher } from './events'
 import type { StageHandler } from './orchestrator'
 import type { MediaProcessor } from './media'
+import { validateEmbedding, validateGeneratedDescription, validateTranscript } from './validation'
 
 export interface MediaInput { bytes: Uint8Array; mimeType: string; durationMs?: number }
 
@@ -48,12 +49,12 @@ export class AnalysisPipeline implements StageHandler {
       for (const asset of source.media ?? []) await this.media.extractAudio(asset)
     }
     if (stage === 'describe' || stage === 'normalize') {
-      const result = await this.ai.describeImage({ content: source.sourceText })
+      const result = validateGeneratedDescription(await this.ai.describeImage({ content: source.sourceText }))
       current.generatedText = result.text
       current.tags = [...new Set(result.tags.map((tag) => tag.trim().toLocaleLowerCase()).filter(Boolean))]
     }
-    if (stage === 'transcribe') current.transcript = (await this.ai.transcribe({ content: source.sourceText })).segments.map((segment) => segment.text).join(' ')
-    if (stage === 'embed') current.embedding = await this.ai.embed({ content: [source.sourceText, current.generatedText, current.transcript, ...current.tags].filter(Boolean).join(' ') })
+    if (stage === 'transcribe') current.transcript = validateTranscript(await this.ai.transcribe({ content: source.sourceText })).segments.map((segment) => segment.text).join(' ')
+    if (stage === 'embed') current.embedding = validateEmbedding(await this.ai.embed({ content: [source.sourceText, current.generatedText, current.transcript, ...current.tags].filter(Boolean).join(' ') }))
     if (!current.completedStages.includes(stage)) current.completedStages.push(stage)
     current.updatedAt = new Date().toISOString()
     await this.derived.save(current)
