@@ -40,6 +40,8 @@ export interface SessionRecord {
 }
 export interface AccountRepository {
   findByGoogleSubject(subject: string): Promise<Account | null | undefined>;
+  findById?(id: string): Promise<Account | null | undefined>;
+  update?(account: Account): Promise<Account>;
   create(account: Account): Promise<Account>;
 }
 export interface SessionRepository {
@@ -169,10 +171,7 @@ export class AuthService {
         ...(picture ? { picture } : {}),
         updatedAt: new Date().toISOString(),
       };
-      const repository = this.accounts as AccountRepository & {
-        update?: (value: Account) => Promise<Account>;
-      };
-      if (repository.update) await repository.update(account);
+      if (this.accounts.update) await this.accounts.update(account);
     }
     if (!account)
       account = await this.accounts.create({        id: randomUUID(),
@@ -206,10 +205,7 @@ export class AuthService {
     return { ownerId: session.accountId };
   }
   async getAccount(accountId: string) {
-    const repository = this.accounts as AccountRepository & {
-      findById?: (id: string) => Promise<Account | undefined>;
-    };
-    return repository.findById?.(accountId);
+    return (await this.accounts.findById?.(accountId)) ?? undefined;
   }
 
   async revoke(token: string) {
