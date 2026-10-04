@@ -248,6 +248,16 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   bool _signingIn = false;
+  late Future<UserProfile> _profileFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileFuture = _loadProfile();
+  }
+
+  Future<UserProfile> _loadProfile() =>
+      widget.repository.getProfile().timeout(const Duration(seconds: 15));
 
   Future<void> _logOut() async {
     if (widget.auth != null) {
@@ -260,8 +270,24 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) => FutureBuilder<UserProfile>(
-    future: widget.repository.getProfile(),
+    future: _profileFuture,
     builder: (context, snapshot) {
+      if (snapshot.hasError) {
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Unable to load profile: ${snapshot.error}'),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () =>
+                    setState(() => _profileFuture = _loadProfile()),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        );
+      }
       if (!snapshot.hasData) {
         return const Center(child: CircularProgressIndicator());
       }
@@ -350,9 +376,9 @@ class _ProfilePageState extends State<ProfilePage> {
                               if (mounted) setState(() {});
                             } catch (error) {
                               if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('$error')),
-                              );
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(SnackBar(content: Text('$error')));
                             } finally {
                               if (mounted) setState(() => _signingIn = false);
                             }
