@@ -12,7 +12,8 @@ export interface CortexClientConfig {
   timeoutMs?: number
 }
 
-const redact = (value: string) => value.replace(/(password|token|secret|key|sig|signature)=([^&\s]+)/gi, '$1=[REDACTED]').replace(/https?:\/\/[^\s]+/g, '[URL_REDACTED]')
+export const redactCortexDiagnostic = (value: string) => value.replace(/(password|token|secret|key|sig|signature)=([^&\s]+)/gi, '$1=[REDACTED]').replace(/https?:\/\/[^\s]+/g, '[URL_REDACTED]')
+const redact = redactCortexDiagnostic
 
 export class SnowflakeCortexClient implements CortexClient {
   private readonly timeoutMs

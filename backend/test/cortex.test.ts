@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { FakeCortexClient } from '../src/infrastructure/ai/cortex-client'
+import { FakeCortexClient, redactCortexDiagnostic } from '../src/infrastructure/ai/cortex-client'
 import { CortexAnalysisProvider } from '../src/infrastructure/ai/cortex-provider'
 import { CortexError } from '../src/infrastructure/ai/cortex-types'
 
@@ -7,6 +7,12 @@ const config = { model: 'test-model', embeddingModel: 'test-embedding', maxAttem
 const image = { artifactUri: 's3://private/image.jpg', contentType: 'image/jpeg', sizeBytes: 100, ownerId: 'owner-1', postId: 'post-1' }
 
 describe('CortexAnalysisProvider', () => {
+  test('redacts credentials and signed URLs from diagnostics', () => {
+    const result = redactCortexDiagnostic('password=secret https://example.test/file.wav?sig=private')
+    expect(result).not.toContain('secret')
+    expect(result).not.toContain('example.test')
+  })
+
   test('normalizes image results', async () => {
     const client = new FakeCortexClient(() => ({ caption: 'A mountain', tags: ['mountain'], observations: ['outdoor'], warnings: [] }))
     const result = await new CortexAnalysisProvider(client, config).analyzeImage(image)
