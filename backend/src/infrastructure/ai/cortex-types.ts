@@ -13,6 +13,7 @@ export class CortexError extends Error {
 export interface CortexClient {
   executeFunction(functionName: string, args: unknown[], signal?: AbortSignal): Promise<unknown>
   health(): Promise<{ status: 'healthy' | 'unhealthy'; details?: string }>
+  capability?(functionName: string, ttlMs?: number): Promise<boolean>
   close(): Promise<void>
 }
 

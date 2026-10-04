@@ -15,7 +15,8 @@ export interface CortexClientConfig {
 const redact = (value: string) => value.replace(/(password|token|secret|key|sig|signature)=([^&\s]+)/gi, '$1=[REDACTED]').replace(/https?:\/\/[^\s]+/g, '[URL_REDACTED]')
 
 export class SnowflakeCortexClient implements CortexClient {
-  private readonly timeoutMs: number
+  private readonly timeoutMs
+  private readonly capabilityCache = new Map<string, { available: boolean; checkedAt: number }>()
   constructor(private readonly config: CortexClientConfig) {
     if (!config.account || !config.user || !config.warehouse || !config.database || !config.schema) throw new CortexError('configuration', 'Snowflake Cortex configuration is incomplete')
     if (!config.password && !config.token) throw new CortexError('configuration', 'Snowflake Cortex credential is missing')
@@ -41,6 +42,7 @@ export class SnowflakeCortexClient implements CortexClient {
   }
 
   async health() { try { await this.executeFunction('CURRENT_VERSION', []); return { status: 'healthy' as const } } catch (error) { return { status: 'unhealthy' as const, details: error instanceof Error ? error.message : 'Cortex unavailable' } } }
+  async capability(functionName: string, ttlMs = 300_000) { const cached = this.capabilityCache.get(functionName); if (cached && Date.now() - cached.checkedAt < ttlMs) return cached.available; try { await this.executeFunction(functionName, []); this.capabilityCache.set(functionName, { available: true, checkedAt: Date.now() }); return true } catch { this.capabilityCache.set(functionName, { available: false, checkedAt: Date.now() }); return false } }
   async close() {}
 }
 
@@ -48,5 +50,6 @@ export class FakeCortexClient implements CortexClient {
   constructor(private readonly handler: (functionName: string, args: unknown[]) => unknown | Promise<unknown> = (functionName, args) => ({ functionName, args })) {}
   executeFunction(functionName: string, args: unknown[]) { return Promise.resolve(this.handler(functionName, args)) }
   health() { return Promise.resolve({ status: 'healthy' as const }) }
+  capability() { return Promise.resolve(true) }
   close() { return Promise.resolve() }
 }
