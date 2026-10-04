@@ -1,4 +1,4 @@
-import { Elysia, t } from "elysia";
+import { Elysia } from "elysia";
 import type { AuthService } from "./service";
 
 export interface AuthenticatedContext {
@@ -6,6 +6,16 @@ export interface AuthenticatedContext {
   accountId: string;
   sessionId: string;
 }
+
+export type AuthenticatedApp = Elysia<
+  "",
+  {
+    decorator: {};
+    store: {};
+    derive: { authenticated: AuthenticatedContext | undefined };
+    resolve: {};
+  }
+>;
 
 export const authContext = (auth: AuthService) => (app: Elysia) =>
   app.resolve({ as: "global" }, async ({ headers, set }) => {
@@ -26,5 +36,3 @@ export const authContext = (auth: AuthService) => (app: Elysia) =>
       return { authenticated: undefined as AuthenticatedContext | undefined };
     }
   });
-
-export const protectedContext = t.Object({});

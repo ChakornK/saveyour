@@ -80,12 +80,14 @@ describe("API routes", () => {
   });
 
   test("serves authenticated capture and profile routes", async () => {
-    const app = createApp(loadConfig({
-      APP_ENV: "test",
-      AUTH_REQUIRED: "true",
-      MONGO_URI: "",
-      REDIS_URL: "",
-    }));
+    const app = createApp(
+      loadConfig({
+        APP_ENV: "test",
+        AUTH_REQUIRED: "true",
+        MONGO_URI: "",
+        REDIS_URL: "",
+      }),
+    );
     const auth = new AuthService();
     const claims: GoogleClaims = {
       issuer: "test",
@@ -97,11 +99,17 @@ describe("API routes", () => {
       picture: "https://example.com/route.png",
       expiresAt: Math.floor(Date.now() / 1000) + 3600,
     };
-    const token = (await auth.signIn(claims, {
-      issuer: "test",
-      audience: "test",
-      nonce: "test",
-    }, 3600)).token;
+    const token = (
+      await auth.signIn(
+        claims,
+        {
+          issuer: "test",
+          audience: "test",
+          nonce: "test",
+        },
+        3600,
+      )
+    ).token;
     const captureResponse = await request(app, "/capture", {
       method: "POST",
       headers: {
@@ -111,23 +119,42 @@ describe("API routes", () => {
       body: JSON.stringify({ url: "https://www.instagram.com/p/example123" }),
     });
     expect(captureResponse.status).toBe(500);
-    expect((await request(app, "/profile", {
-      headers: { authorization: `Bearer ${token}` },
-    })).status).toBe(500);
+    expect(
+      (
+        await request(app, "/profile", {
+          headers: { authorization: `Bearer ${token}` },
+        })
+      ).status,
+    ).toBe(500);
   });
 
   test("profiles resolve identity through the app-owned auth service", async () => {
-    const app = createApp(loadConfig({ APP_ENV: "test", MONGO_URI: "", REDIS_URL: "" }));
-    const auth = (app as ReturnType<typeof createApp> & { auth: AuthService }).auth;
+    const app = createApp(
+      loadConfig({ APP_ENV: "test", MONGO_URI: "", REDIS_URL: "" }),
+    );
+    const auth = (app as ReturnType<typeof createApp> & { auth: AuthService })
+      .auth;
     expect(auth).toBeDefined();
     const claims: GoogleClaims = {
-      issuer: "test", audience: "test", nonce: "test", subject: "profile-user",
-      email: "profile-user@example.com", name: "Profile Test User",
+      issuer: "test",
+      audience: "test",
+      nonce: "test",
+      subject: "profile-user",
+      email: "profile-user@example.com",
+      name: "Profile Test User",
       picture: "https://example.com/profile-test.png",
       expiresAt: Math.floor(Date.now() / 1000) + 3600,
     };
-    const token = (await auth.signIn(claims, { issuer: "test", audience: "test", nonce: "test" }, 3600)).token;
-    const response = await request(app, "/profile", { headers: { authorization: `Bearer ${token}` } });
+    const token = (
+      await auth.signIn(
+        claims,
+        { issuer: "test", audience: "test", nonce: "test" },
+        3600,
+      )
+    ).token;
+    const response = await request(app, "/profile", {
+      headers: { authorization: `Bearer ${token}` },
+    });
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
       displayName: "Profile Test User",
