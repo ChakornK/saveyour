@@ -33,7 +33,8 @@ export const createApp = (config: AppConfig) => {
   const repository = useProduction ? new MongoAnalysisRepository(mongo!) : new InMemoryAnalysisRepository()
   const derivedStore = useProduction ? new MongoDerivedPostStore(mongo!) : new InMemoryDerivedPostStore()
   const source = useProduction ? new MongoPostSource(mongo!) : new InMemoryPostSource()
-  const searchIndex = useProduction && config.searchUrl ? new OpenSearchIndex({ url: config.searchUrl, index: config.searchIndex, apiKey: config.searchApiKey }) : new InMemorySearchIndex()
+  const searchConfig = useProduction && config.searchUrl ? { url: config.searchUrl, index: config.searchIndex, apiKey: config.searchApiKey } : undefined
+  const searchIndex = searchConfig ? new OpenSearchIndex(searchConfig) : new InMemorySearchIndex()
   const searchService = new SearchService(searchIndex)
   const initialize = async () => {
     if (mongo) {
@@ -45,7 +46,7 @@ export const createApp = (config: AppConfig) => {
         new MongoOutbox(mongo).ensureIndexes()
       ])
     }
-    await initializeSearchIndex(searchIndex)
+    await initializeSearchIndex(searchIndex, searchConfig)
   }
   const metrics = new InMemoryAnalysisMetrics()
   const provider = useProduction && config.geminiApiKey ? new GeminiProvider({ apiKey: config.geminiApiKey, model: config.geminiModel, timeoutMs: config.geminiTimeoutMs, maxAttempts: config.geminiMaxAttempts }) : new FakeAiProvider()
