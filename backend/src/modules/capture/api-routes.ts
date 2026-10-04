@@ -2,6 +2,7 @@ import { Elysia, t } from "elysia";
 import { AuthError, AuthService } from "../auth/service";
 import { CaptureError } from "./types";
 import { CaptureService } from "./service";
+import { authContext } from "../auth/context";
 
 const scopeFromHeaders = async (
   auth: AuthService,
@@ -14,7 +15,7 @@ const scopeFromHeaders = async (
 };
 
 export const captureApiRoutes = (service: CaptureService, auth: AuthService) =>
-  new Elysia({ name: "capture-api" })
+  new Elysia({ name: "capture-api" }).use(authContext(auth))
     .post(
       "/capture",
       async ({ body, headers, set }) => {
