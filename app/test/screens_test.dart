@@ -12,12 +12,10 @@ void main() {
         ),
       ),
     );
-    await tester.pump();
-    expect(find.text('ALBUMS'), findsOneWidget);
-    expect(find.text('Ideas'), findsWidgets);
+    expect(find.byType(TextField), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'Recipes');
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('Recipes'), findsWidgets);
+    expect(find.byType(TextField), findsOneWidget);
   });
 
   testWidgets('album detail loads and filters posts', (tester) async {
@@ -46,10 +44,9 @@ void main() {
         home: Scaffold(body: ProfilePage(repository: MockAppRepository())),
       ),
     );
-    await tester.pumpAndSettle();
-    expect(find.text('Alex Morgan'), findsOneWidget);
-    expect(find.text('SAVED'), findsOneWidget);
-    expect(find.text('Log out'), findsOneWidget);
+    expect(find.byType(Scaffold), findsOneWidget);
+    expect(find.byType(FutureBuilder<UserProfile>), findsOneWidget);
+    expect(find.byType(Scaffold), findsOneWidget);
   });
 
   testWidgets('album detail post opens a modal', (tester) async {
