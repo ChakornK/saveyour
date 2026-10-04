@@ -69,7 +69,9 @@ export class SqlTiDBIntegrationPort implements TiDBIntegrationPort {
   async loadJobContext(jobId: string): Promise<JobContext> {
     const rows = await this.db.query<JobContext>("SELECT * FROM analysis_job_context WHERE job_id = ?", [jobId]);
     if (!rows[0]) throw new Error("Job context not found");
-    return rows[0];
+    const context = rows[0];
+    if (context.media.some((media) => media.ownerId !== context.ownerId || media.postId !== context.postId)) throw new Error("MEDIA_SCOPE_MISMATCH");
+    return context;
   }
 
   async persistCompletion(completion: AnalysisCompletion, lease: JobLease): Promise<void> {
