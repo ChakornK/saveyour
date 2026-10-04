@@ -12,12 +12,15 @@ class AuthSession {
   final String token;
 
   factory AuthSession.fromJson(Map<String, dynamic> json) {
-    final account = json['account'] as Map<String, dynamic>;
-    return AuthSession(
-      accountId: account['id'] as String,
-      email: account['email'] as String,
-      token: json['token'] as String,
-    );
+    final account = json['account'];
+    final accountMap = account is Map<String, dynamic> ? account : null;
+    final accountId = accountMap?['id'];
+    final email = accountMap?['email'];
+    final token = json['token'];
+    if (accountId is! String || email is! String || token is! String) {
+      throw const AuthException('Backend returned an incomplete sign-in response.');
+    }
+    return AuthSession(accountId: accountId, email: email, token: token);
   }
 }
 
@@ -62,7 +65,9 @@ class GoogleAuthService {
     final googleAuth = googleAccount.authentication;
     final idToken = googleAuth.idToken;
     if (idToken == null || idToken.isEmpty) {
-      throw const AuthException('Google did not return an ID token.');
+      throw const AuthException(
+        'Google did not return an ID token. Check that the Web OAuth client ID is configured as serverClientId.',
+      );
     }
 
     final response = await _client.post(
@@ -74,7 +79,11 @@ class GoogleAuthService {
       throw AuthException(_message(response.body, 'Google sign-in failed.'));
     }
 
-    final session = AuthSession.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw const AuthException('Backend returned an invalid sign-in response.');
+    }
+    final session = AuthSession.fromJson(decoded);
     await _storage.write(key: _sessionKey, value: session.token);
     await _storage.write(key: _accountIdKey, value: session.accountId);
     await _storage.write(key: _emailKey, value: session.email);
