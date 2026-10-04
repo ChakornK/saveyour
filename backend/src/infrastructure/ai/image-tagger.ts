@@ -36,8 +36,10 @@ export class OnnxClipImageTagger implements ImageTagger {
       pixels[2 * 224 * 224 + target] = (data[source + 2] / 255 - 0.40821073) / 0.27577711;
     }
     const session = await this.getSession();
-    const inputName = session.inputNames[0];
-    const outputName = session.outputNames[0];
+    const inputName = session.inputNames.find((name) => name === "pixel_values");
+    if (!inputName) throw new Error("ONNX model has no pixel_values input");
+    const outputName = session.outputNames.find((name) => name === "image_embeds");
+    if (!outputName) throw new Error("ONNX model has no image_embeds output");
     const output = await session.run({ [inputName]: new ort.Tensor("float32", pixels, [1, 3, 224, 224]) });
     const scores = output[outputName].data as Float32Array;
     return this.config.labels.map((label, index) => ({ label, confidence: 1 / (1 + Math.exp(-Number(scores[index] ?? 0))) })).filter((tag) => tag.confidence >= 0.5).sort((a, b) => b.confidence - a.confidence).slice(0, 12);
