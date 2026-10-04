@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import 'session_store.dart';
 
+// Flutter reads these values from --dart-define or --dart-define-from-file.
 const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
 const googleServerClientId = String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
 
