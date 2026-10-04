@@ -118,23 +118,7 @@ class _HomePageState extends State<HomePage> {
           'saveyour.tech',
           style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.ink),
         ),
-        actions: [
-          if (_tab == 0)
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: FilledButton.icon(
-                onPressed: () =>
-                    FocusScope.of(context).requestFocus(FocusNode()),
-                icon: const Icon(Icons.search),
-                label: const Text('Search'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.emerald,
-                  foregroundColor: AppColors.ink,
-                  side: const BorderSide(color: AppColors.ink, width: 2),
-                ),
-              ),
-            ),
-        ],
+        actions: const [],
       ),
       body: Row(
         children: [
