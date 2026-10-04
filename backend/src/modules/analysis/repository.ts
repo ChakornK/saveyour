@@ -6,6 +6,7 @@ export interface AnalysisRepository {
   findByKey(key: string): Promise<AnalysisJob | undefined>
   updateStage(id: string, stage: AnalysisStage, state: StageState): Promise<AnalysisJob>
   listLeased?(): Promise<AnalysisJob[]>
+  listRetryable?(): Promise<AnalysisJob[]>
 }
 
 export class InMemoryAnalysisRepository implements AnalysisRepository {
@@ -29,6 +30,8 @@ export class InMemoryAnalysisRepository implements AnalysisRepository {
     const id = this.keys.get(key)
     return id ? this.get(id) : undefined
   }
+
+  async listRetryable() { return [...this.jobs.values()].filter((job) => job.status === 'processing').map((job) => structuredClone(job)) }
 
   async updateStage(id: string, stage: AnalysisStage, state: StageState) {
     const job = this.jobs.get(id)
