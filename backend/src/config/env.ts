@@ -12,6 +12,17 @@ export interface AppConfig {
   seaweedfsEndpoint?: string;
   seaweedfsBucket?: string;
   googleClientId?: string;
+  mongoUri: string;
+  mongoDatabase: string;
+  redisUrl: string;
+  geminiApiKey: string;
+  searchUrl: string;
+  searchIndex: string;
+  searchApiKey: string;
+  geminiModel: string;
+  geminiTimeoutMs: number;
+  geminiMaxAttempts: number;
+  workerConcurrency: number;
 }
 
 const positiveInteger = (
@@ -70,5 +81,28 @@ export const loadConfig = (
       : {}),
     seaweedfsBucket: env.SEAWEEDFS_BUCKET ?? "saveyour-tech",
     ...(env.GOOGLE_CLIENT_ID ? { googleClientId: env.GOOGLE_CLIENT_ID } : {}),
+    mongoUri: env.MONGO_URI ?? "mongodb://127.0.0.1:27017",
+    mongoDatabase: env.MONGO_DATABASE ?? "saveyour-tech",
+    redisUrl: env.REDIS_URL ?? "redis://127.0.0.1:6379",
+    geminiApiKey: env.GEMINI_API_KEY ?? "",
+    searchUrl: env.SEARCH_URL ?? "http://127.0.0.1:9200",
+    searchIndex: env.SEARCH_INDEX ?? "saveyour-tech",
+    searchApiKey: env.SEARCH_API_KEY ?? "",
+    geminiModel: env.GEMINI_MODEL ?? "gemini-2.5-flash",
+    geminiTimeoutMs: positiveInteger(
+      env.GEMINI_TIMEOUT_MS,
+      30_000,
+      "GEMINI_TIMEOUT_MS",
+    ),
+    geminiMaxAttempts: positiveInteger(
+      env.GEMINI_MAX_ATTEMPTS,
+      3,
+      "GEMINI_MAX_ATTEMPTS",
+    ),
+    workerConcurrency: positiveInteger(
+      env.WORKER_CONCURRENCY,
+      2,
+      "WORKER_CONCURRENCY",
+    ),
   };
 };

@@ -3,17 +3,22 @@ import openapi from "@elysiajs/openapi";
 import { Elysia } from "elysia";
 import type { AppConfig } from "./config/env";
 import { healthRoutes } from "./modules/health/routes";
-import { createCaptureRoutes } from "./modules/capture/routes";
+import { analysisRoutes } from "./modules/analysis/routes";
+import { searchRoutes } from "./modules/search/routes";
+import { createInfrastructure } from "./infrastructure/runtime";
 import { AuthService } from "./modules/auth/service";
 import { createAuthRoutes } from "./modules/auth/routes";
 import { InMemoryMediaStore } from "./modules/media/store";
 import { createMediaRoutes } from "./modules/media/routes";
+import { captureRoutes } from "./modules/capture/routes";
+import { InMemoryPostSource } from "./modules/analysis/pipeline";
 
 export const createApp = (config: AppConfig) => {
   const auth = new AuthService();
   const media = new InMemoryMediaStore(
     config.mediaMaxBytes ?? 25 * 1024 * 1024,
   );
+  const infrastructure = createInfrastructure(config);
   return new Elysia({ name: "saveyour-tech-api" })
     .use(
       openapi({
@@ -42,7 +47,15 @@ export const createApp = (config: AppConfig) => {
       };
     })
     .use(healthRoutes)
-    .use(createCaptureRoutes(config, auth))
+    .use(
+      analysisRoutes(
+        infrastructure.analysis,
+        infrastructure.analysisRepository,
+        infrastructure.metrics,
+      ),
+    )
+    .use(searchRoutes(infrastructure.search))
+    .use(captureRoutes(new InMemoryPostSource(), infrastructure.analysis))
     .use(createAuthRoutes(config, auth))
     .use(createMediaRoutes(auth, media))
     .get("/", () => ({

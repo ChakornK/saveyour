@@ -6,7 +6,7 @@ Implement the capture workstream as a protected TypeScript API with owner-scoped
 
 ## Tasks
 
-- [ ] 1. Establish API runtime and operational boundaries
+- [x] 1. Establish API runtime and operational boundaries
   - Add configuration schema, HTTP bootstrap, request IDs, structured logging, metrics, graceful shutdown, and stable problem-details middleware.
   - Add dependency health checks and repeatable MongoDB index initialization.
   - _Requirements: 7.1, 7.2, 7.4, 7.5_
@@ -21,7 +21,7 @@ Implement the capture workstream as a protected TypeScript API with owner-scoped
   - [ ]* 2.4 Add unit and integration tests for valid, cancelled, invalid, expired, revoked, and cross-owner authentication flows.
     - _Requirements: 1.1–1.6_
 
-- [ ] 3. Implement URL policy and provider classification
+- [x] 3. Implement URL policy and provider classification
   - [ ] 3.1 Define provider URL grammars and Canonical_Post_URL normalization.
     - Preserve meaningful identifiers and remove only approved tracking parameters.
     - _Requirements: 2.1, 2.2_
@@ -31,7 +31,7 @@ Implement the capture workstream as a protected TypeScript API with owner-scoped
     - **Property 1: URL normalization idempotence**
     - **Validates: Requirements 2.1, 2.6**
 
-- [ ] 4. Implement capture identity and idempotency
+- [x] 4. Implement capture identity and idempotency
   - [ ] 4.1 Define CaptureCommand, CaptureResult, source status, analysis status, and stable capture errors.
     - _Requirements: 3.1, 3.4, 7.2_
   - [ ] 4.2 Add owner/canonical URL uniqueness and idempotency-key reservation with replay behavior.
@@ -43,7 +43,7 @@ Implement the capture workstream as a protected TypeScript API with owner-scoped
     - **Property 3: Idempotency replay**
     - **Validates: Requirements 3.1–3.3**
 
-- [ ] 5. Implement Saved_Post persistence and protected APIs
+- [x] 5. Implement Saved_Post persistence and protected APIs
   - [ ] 5.1 Create Account, Session, Saved_Post, Media_Asset, outbox, and idempotency schemas.
     - _Requirements: 1.2, 3.1, 5.1, 8.1_
   - [ ] 5.2 Add active/deleted projections, cursor encoding, owner-scoped list/detail routes, and soft deletion.
