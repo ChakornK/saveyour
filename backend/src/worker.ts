@@ -39,6 +39,7 @@ let stopping = false
 
 const loop = async () => {
   while (!stopping) {
+    await worker.recover()
     const processed = await worker.runOnce()
     await outboxWorker.runOnce()
     if (!processed) await new Promise((resolve) => setTimeout(resolve, 500))
