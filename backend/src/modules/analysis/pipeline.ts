@@ -101,7 +101,9 @@ export class AnalysisPipeline implements StageHandler {
       ];
     }
     if (stage === "transcribe") {
-      try {
+      if (!source.media?.[0] || (!source.media[0].mimeType.startsWith("video/") && !source.media[0].mimeType.startsWith("audio/"))) {
+        current.transcript = "";
+      } else try {
         const audio = source.media?.[0] && this.media
           ? await this.media.extractAudio(source.media[0])
           : source.media?.[0];
