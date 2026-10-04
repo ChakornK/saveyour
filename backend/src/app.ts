@@ -34,6 +34,13 @@ import { RedisJobQueue } from "./infrastructure/queue/redis-queue";
 import { InMemoryRateLimitStore, rateLimit } from "./modules/limits/rate-limit";
 import { authentication } from "./modules/auth/auth";
 import { captureRoutes } from "./modules/capture/routes";
+import { captureApiRoutes } from "./modules/capture/api-routes";
+import { AuthService } from "./modules/auth/service";
+import { createAuthRoutes } from "./modules/auth/routes";
+import {
+  InMemoryAccountRepository,
+  InMemorySessionRepository,
+} from "./modules/auth/service";
 import { initializeSearchIndex } from "./infrastructure/search/index-init";
 
 export const createApp = (config: AppConfig) => {
@@ -129,6 +136,10 @@ export const createApp = (config: AppConfig) => {
     undefined,
     new QueuePublisher(queue),
   );
+  const authService = new AuthService(
+    new InMemoryAccountRepository(),
+    new InMemorySessionRepository(),
+  );
   const app = new Elysia({ name: "saveyour-tech-api" })
     .use(
       openapi({
@@ -173,6 +184,7 @@ export const createApp = (config: AppConfig) => {
       };
     })
     .use(healthRoutes())
+    .use(createAuthRoutes(config, authService))
     .use(analysisRoutes(orchestrator, repository, metrics))
     .use(captureRoutes(source, orchestrator))
     .use(searchRoutes(searchService, new TagSuggestionService(derivedStore)))

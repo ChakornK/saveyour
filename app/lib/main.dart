@@ -14,10 +14,7 @@ import 'screens.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   auth.requiredAppConfig('API_BASE_URL', api.apiBaseUrl);
-  auth.requiredAppConfig(
-    'GOOGLE_SERVER_CLIENT_ID',
-    auth.googleServerClientId,
-  );
+  auth.requiredAppConfig('GOOGLE_SERVER_CLIENT_ID', auth.googleServerClientId);
   runApp(const SaveYourTechApp());
 }
 
@@ -191,7 +188,14 @@ class _HomePageState extends State<HomePage> {
         else if (_state.status == LoadStatus.failure)
           SliverFillRemaining(
             child: Center(
-              child: Text(_state.message ?? 'Something went wrong.'),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_state.message ?? 'Something went wrong.'),
+                  const SizedBox(height: 12),
+                  FilledButton(onPressed: _load, child: const Text('Retry')),
+                ],
+              ),
             ),
           )
         else
@@ -244,11 +248,19 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _showSaveDialogForUrl(String url) async {
     try {
-      await _repository.saveLink(url);
+      final parsed = Uri.tryParse(url.trim());
+      if (parsed == null ||
+          !parsed.hasScheme ||
+          (parsed.scheme != 'http' && parsed.scheme != 'https') ||
+          parsed.host.isEmpty) {
+        throw const api.ApiException(null, 'Enter a valid http or https URL.');
+      }
+      await _repository.saveLink(url.trim());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Link queued for capture.')),
         );
+        await _load();
       }
     } catch (error) {
       if (mounted) {
