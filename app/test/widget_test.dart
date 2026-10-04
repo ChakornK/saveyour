@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:saveyour/main.dart';
 
 void main() {
-  testWidgets('renders the saveyour.tech home surface', (WidgetTester tester) async {
+  testWidgets('renders the saveyour.tech home surface', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const SaveYourTechApp());
     await tester.pumpAndSettle();
 

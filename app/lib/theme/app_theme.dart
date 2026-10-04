@@ -10,7 +10,10 @@ abstract final class AppColors {
 
 abstract final class AppTheme {
   static ThemeData light() {
-    final scheme = ColorScheme.fromSeed(seedColor: AppColors.emerald, brightness: Brightness.light);
+    final scheme = ColorScheme.fromSeed(
+      seedColor: AppColors.emerald,
+      brightness: Brightness.light,
+    );
     return ThemeData(
       colorScheme: scheme,
       scaffoldBackgroundColor: AppColors.background,
@@ -19,29 +22,40 @@ abstract final class AppTheme {
       inputDecorationTheme: const InputDecorationTheme(
         filled: true,
         fillColor: AppColors.paper,
-        border: OutlineInputBorder(borderSide: BorderSide(color: AppColors.ink, width: 2)),
-        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.ink, width: 2)),
-        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.ink, width: 3)),
+        border: OutlineInputBorder(
+          borderSide: BorderSide(color: AppColors.ink, width: 2),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: AppColors.ink, width: 2),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: AppColors.ink, width: 3),
+        ),
       ),
     );
   }
 }
 
 class BrutalSurface extends StatelessWidget {
-  const BrutalSurface({super.key, required this.child, this.color = AppColors.paper, this.padding = const EdgeInsets.all(16)});
+  const BrutalSurface({
+    super.key,
+    required this.child,
+    this.color = AppColors.paper,
+    this.padding = const EdgeInsets.all(16),
+  });
   final Widget child;
   final Color color;
   final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: padding,
-        decoration: BoxDecoration(
-          color: color,
-          border: Border.all(color: AppColors.ink, width: 2),
-          borderRadius: BorderRadius.circular(5),
-          boxShadow: const [BoxShadow(color: AppColors.ink, offset: Offset(4, 4))],
-        ),
-        child: child,
-      );
+    padding: padding,
+    decoration: BoxDecoration(
+      color: color,
+      border: Border.all(color: AppColors.ink, width: 2),
+      borderRadius: BorderRadius.circular(5),
+      boxShadow: const [BoxShadow(color: AppColors.ink, offset: Offset(4, 4))],
+    ),
+    child: child,
+  );
 }
