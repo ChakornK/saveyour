@@ -32,13 +32,7 @@ export interface AppConfig {
   workerConcurrency: number;
   ytDlpBinary: string;
   ytDlpTempDir: string;
-  tidbUrl: string;
-  tidbUser: string;
-  tidbPassword: string;
-  tidbDatabase: string;
   integrationFlags: {
-    tidbPersistence: boolean;
-    tidbSearch: boolean;
     cortexAnalysis: boolean;
     cortexTranscription: boolean;
   };
@@ -151,13 +145,7 @@ export const loadConfig = (
     ),
     ytDlpBinary: env.YTDLP_BINARY ?? "yt-dlp",
     ytDlpTempDir: env.YTDLP_TEMP_DIR ?? "/tmp/saveyour-media",
-    tidbUrl: env.TIDB_URL ?? "",
-    tidbUser: env.TIDB_USER ?? "",
-    tidbPassword: env.TIDB_PASSWORD ?? "",
-    tidbDatabase: env.TIDB_DATABASE ?? "saveyour_tech",
     integrationFlags: {
-      tidbPersistence: env.TIDB_PERSISTENCE_ENABLED === "true",
-      tidbSearch: env.TIDB_SEARCH_ENABLED === "true",
       cortexAnalysis: env.CORTEX_ANALYSIS_ENABLED !== "false",
       cortexTranscription: env.CORTEX_TRANSCRIPTION_ENABLED !== "false",
     },

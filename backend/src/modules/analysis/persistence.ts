@@ -1,4 +1,4 @@
-import { completionKey, type AnalysisCompletion, type JobLease, type TiDBIntegrationPort } from "./integration-contract";
+import { completionKey, type AnalysisCompletion, type JobLease, type AnalysisPersistencePort } from "./integration-contract";
 
 export interface CompletionTransactionStore {
   findCompletion(key: string): Promise<AnalysisCompletion | undefined>;
@@ -18,7 +18,7 @@ export class AtomicCompletionPersister {
   }
 }
 
-export class CompletionPort implements Pick<TiDBIntegrationPort, "persistCompletion"> {
+export class CompletionPort implements Pick<AnalysisPersistencePort, "persistCompletion"> {
   constructor(private readonly persister: AtomicCompletionPersister) {}
   async persistCompletion(completion: AnalysisCompletion, lease: JobLease) {
     await this.persister.persist(completion, lease);

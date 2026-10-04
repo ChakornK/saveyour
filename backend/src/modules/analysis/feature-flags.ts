@@ -1,8 +1,6 @@
 import type { AppConfig } from "../../config/env";
 
 export interface AnalysisFeatureFlags {
-  tidbPersistence: boolean;
-  tidbSearch: boolean;
   cortexAnalysis: boolean;
   cortexTranscription: boolean;
 }

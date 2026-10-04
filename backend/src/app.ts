@@ -200,7 +200,6 @@ export const createApp = (config: AppConfig) => {
       };
     })
     .use(healthRoutes(async () => checkIntegrationHealth({
-      tidb: async () => !config.integrationFlags.tidbPersistence || Boolean(config.tidbUrl),
       redis: async () => !useProduction || Boolean(redis),
       seaweedfs: async () => !useProduction || Boolean(config.seaweedfsEndpoint),
       cortex: async () => !config.integrationFlags.cortexAnalysis || !useProduction || Boolean(config.geminiApiKey),

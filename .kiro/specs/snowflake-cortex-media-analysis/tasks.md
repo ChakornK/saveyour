@@ -2,7 +2,7 @@
 
 ## Overview
 
-Implement the Cortex-only provider independently from TiDB and the integration coordinator. Deliver the client boundary, capability checks, image/frame analysis, `AI_TRANSCRIBE`, embeddings, response normalization, error classification, security controls, and provider tests.
+Implement the Cortex-only provider independently from application persistence and the integration coordinator. Deliver the client boundary, capability checks, image/frame analysis, `AI_TRANSCRIBE`, embeddings, response normalization, error classification, security controls, and provider tests.
 
 ## Tasks
 
