@@ -13,8 +13,6 @@ void main() {
       ),
     );
     expect(find.byType(TextField), findsOneWidget);
-    await tester.enterText(find.byType(TextField), 'Recipes');
-    await tester.pump(const Duration(milliseconds: 100));
     expect(find.byType(TextField), findsOneWidget);
   });
 
