@@ -105,6 +105,82 @@ class MockAppRepository implements AppRepository {
       color: 0xFF00D696,
       tags: ['reading'],
     ),
+    const SavedPost(
+      id: '5',
+      title: 'Coastal light study',
+      description: 'Blue hour, salt air, and a palette worth keeping.',
+      platform: SourcePlatform.instagram,
+      mediaKind: MediaKind.image,
+      thumbnailUrl:
+          'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=900',
+      username: '@field.notes',
+      albums: ['References', 'Travel'],
+      color: 0xFF0099FF,
+      tags: ['photography', 'travel'],
+    ),
+    const SavedPost(
+      id: '6',
+      title: 'One-pan lemon pasta',
+      description:
+          'A 20-minute dinner for the nights when everything is happening.',
+      platform: SourcePlatform.facebook,
+      mediaKind: MediaKind.image,
+      thumbnailUrl:
+          'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=900',
+      username: 'SaveYour Kitchen',
+      albums: ['Recipes'],
+      color: 0xFFFACC00,
+      tags: ['food', 'quick'],
+    ),
+    const SavedPost(
+      id: '7',
+      title: 'The architecture of attention',
+      description: 'A long-form essay about designing calmer digital spaces.',
+      platform: SourcePlatform.reddit,
+      mediaKind: MediaKind.text,
+      username: 'u/slowinterface',
+      albums: ['Reading', 'Ideas'],
+      color: 0xFF7A83FF,
+      tags: ['reading', 'design'],
+    ),
+    const SavedPost(
+      id: '8',
+      title: 'Street food after midnight',
+      description: 'Save this route for the next late-night walk.',
+      platform: SourcePlatform.tiktok,
+      mediaKind: MediaKind.video,
+      thumbnailUrl:
+          'https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?w=900',
+      username: '@nightmarket.walks',
+      albums: ['Travel', 'Food'],
+      color: 0xFFFF4D50,
+      tags: ['travel', 'food'],
+    ),
+    const SavedPost(
+      id: '9',
+      title: 'A better weekly review',
+      description:
+          'Four questions that make planning feel less like punishment.',
+      platform: SourcePlatform.x,
+      mediaKind: MediaKind.text,
+      username: '@clearerweeks',
+      albums: ['Ideas'],
+      color: 0xFF00D696,
+      tags: ['planning', 'habits'],
+    ),
+    const SavedPost(
+      id: '10',
+      title: 'Tiny homes, big ideas',
+      description: 'A carousel of clever storage solutions for small rooms.',
+      platform: SourcePlatform.instagram,
+      mediaKind: MediaKind.carousel,
+      thumbnailUrl:
+          'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=900',
+      username: '@smallspace.club',
+      albums: ['Workspace', 'References'],
+      color: 0xFF0099FF,
+      tags: ['home', 'design'],
+    ),
   ];
 
   @override
