@@ -11,6 +11,8 @@ import { AnalysisWorker } from './modules/analysis/queue'
 import { AnalysisOrchestrator } from './modules/analysis/orchestrator'
 import { AnalysisPipeline } from './modules/analysis/pipeline'
 import { GeminiProvider } from './infrastructure/ai/gemini-provider'
+import { SnowflakeCortexClient } from './infrastructure/ai/cortex-client'
+import { CortexAnalysisProvider } from './infrastructure/ai/cortex-provider'
 import { MeilisearchIndex } from './infrastructure/search/meilisearch-index'
 import { SearchEventDelivery } from './infrastructure/search/event-index-delivery'
 
@@ -29,7 +31,9 @@ if (!config.searchUrl) throw new Error('SEARCH_URL is required for the worker')
 const redis = new RedisClientAdapter(config.redisUrl)
 await redis.connect()
 const search = new MeilisearchIndex({ url: config.searchUrl, index: config.searchIndex, apiKey: config.searchApiKey })
-const provider = new GeminiProvider({ apiKey: config.geminiApiKey, model: config.geminiModel, timeoutMs: config.geminiTimeoutMs, maxAttempts: config.geminiMaxAttempts })
+const provider = config.snowflakeAccount && config.snowflakeUser && config.snowflakeWarehouse && config.snowflakeDatabase && config.snowflakeSchema && (config.snowflakePassword || config.snowflakeToken)
+  ? new CortexAnalysisProvider(new SnowflakeCortexClient({ account: config.snowflakeAccount, user: config.snowflakeUser, password: config.snowflakePassword, token: config.snowflakeToken, warehouse: config.snowflakeWarehouse, database: config.snowflakeDatabase, schema: config.snowflakeSchema, endpoint: config.snowflakeEndpoint, timeoutMs: config.cortexTimeoutMs ?? 10_000 }), { model: config.cortexModel ?? 'claude-3-5-sonnet', embeddingModel: config.cortexEmbeddingModel ?? 'snowflake-arctic-embed-m-v1.5', maxAttempts: config.cortexMaxAttempts ?? 3 })
+  : new GeminiProvider({ apiKey: config.geminiApiKey!, model: config.geminiModel, timeoutMs: config.geminiTimeoutMs, maxAttempts: config.geminiMaxAttempts })
 const delivery = new SearchEventDelivery(search)
 const outboxWorker = new OutboxWorker(outbox, delivery)
 const orchestrator = new AnalysisOrchestrator(repository, new AnalysisPipeline(source, derived, provider), 3)

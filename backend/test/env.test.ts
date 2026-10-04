@@ -12,12 +12,26 @@ describe('loadConfig', () => {
       mongoDatabase: 'saveyour-tech',
       workerConcurrency: 2,
       redisUrl: undefined,
+      searchUrl: undefined,
+      searchApiKey: undefined,
       searchIndex: 'saveyour-posts',
       geminiModel: 'gemini-2.0-flash',
       geminiTimeoutMs: 10000,
       geminiMaxAttempts: 3,
       authRequired: false,
-      authTokens: {}
+      authTokens: {},
+      snowflakeAccount: undefined,
+      snowflakeUser: undefined,
+      snowflakePassword: undefined,
+      snowflakeToken: undefined,
+      snowflakeWarehouse: undefined,
+      snowflakeDatabase: undefined,
+      snowflakeSchema: undefined,
+      snowflakeEndpoint: undefined,
+      cortexModel: 'claude-3-5-sonnet',
+      cortexEmbeddingModel: 'snowflake-arctic-embed-m-v1.5',
+      cortexTimeoutMs: 10000,
+      cortexMaxAttempts: 3
     })
   })
 
