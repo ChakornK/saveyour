@@ -26,6 +26,7 @@ export class IntegrationCoordinatorImpl implements AnalysisCoordinator {
   constructor(
     private readonly tidb: TiDBIntegrationPort,
     private readonly provider: IntegrationProvider,
+    private readonly now: () => string = () => new Date().toISOString(),
   ) {}
 
   async enqueue(input: CaptureInput): Promise<JobReceipt> {
@@ -65,7 +66,7 @@ export class IntegrationCoordinatorImpl implements AnalysisCoordinator {
           stage,
           status: "completed",
           attempts: 1,
-          updatedAt: new Date().toISOString(),
+          updatedAt: this.now(),
         });
       } catch (error) {
         const failure: ClassifiedFailure = {
@@ -81,7 +82,7 @@ export class IntegrationCoordinatorImpl implements AnalysisCoordinator {
           stage,
           status: "retryable",
           attempts: 1,
-          updatedAt: new Date().toISOString(),
+          updatedAt: this.now(),
           error: failure,
         });
       }
