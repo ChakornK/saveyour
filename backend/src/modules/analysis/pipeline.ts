@@ -76,11 +76,11 @@ export class AnalysisPipeline implements StageHandler {
     };
     if (stage === "extract" && this.media) {
       for (const asset of source.media ?? [])
-        await this.media.extractFrames(asset);
+        if (asset.mimeType.startsWith("video/")) await this.media.extractFrames(asset);
     }
     if (stage === "transcribe" && this.media) {
       for (const asset of source.media ?? [])
-        await this.media.extractAudio(asset);
+        if (asset.mimeType.startsWith("video/") || asset.mimeType.startsWith("audio/")) await this.media.extractAudio(asset);
     }
     if (stage === "describe" || stage === "normalize") {
       const result = validateGeneratedDescription(
