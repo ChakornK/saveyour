@@ -22,7 +22,7 @@ class PostCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(child: _media()),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Row(
               children: [
                 SourceIcon(platform: post.platform, size: 15),
@@ -52,14 +52,16 @@ class PostCard extends StatelessWidget {
 
   Widget _media() {
     if (post.mediaKind == MediaKind.text)
-      return BrutalSurface(
-        color: AppColors.background,
-        padding: const EdgeInsets.all(14),
-        child: Text(
-          post.description,
-          maxLines: 7,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+      return Padding(
+        padding: const EdgeInsets.all(6),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: Text(
+            post.description,
+            maxLines: 9,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          ),
         ),
       );
     if (post.thumbnailUrl == null)

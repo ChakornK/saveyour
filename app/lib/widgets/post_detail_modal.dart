@@ -147,7 +147,7 @@ class PostDetailModal extends StatelessWidget {
     color: AppColors.background,
     child: Text(
       post.description,
-      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
     ),
   );
 }
