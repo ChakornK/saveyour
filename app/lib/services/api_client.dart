@@ -66,6 +66,14 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
               body: body == null ? null : jsonEncode(body),
             )
             .timeout(_requestTimeout);
+      case 'PATCH':
+        response = await _client
+            .patch(
+              uri,
+              headers: headers,
+              body: body == null ? null : jsonEncode(body),
+            )
+            .timeout(_requestTimeout);
       case 'DELETE':
         response = await _client
             .delete(uri, headers: headers)
@@ -180,6 +188,19 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
   Future<Album> createAlbum(String name) async {
     final body = await _request('POST', '/albums', body: {'name': name});
     return _albumFromJson(body as Map<String, dynamic>);
+  }
+
+  @override
+  Future<Album> renameAlbum(String albumId, String name) async {
+    final body = await _request(
+      'PATCH',
+      '/albums/${Uri.encodeComponent(albumId)}',
+      body: {'name': name},
+    );
+    if (body is! Map<String, dynamic>) {
+      throw const ApiException(null, 'The server returned an invalid album.');
+    }
+    return _albumFromJson(body);
   }
 
   @override

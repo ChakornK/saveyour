@@ -17,6 +17,11 @@ export const albumRoutes = (service: AlbumService, auth: AuthService) =>
       set.status = 201;
       return service.create(ownerId, body.name);
     }, { body: t.Object({ name: t.String({ minLength: 1, maxLength: 120 }) }) })
+    .patch("/albums/:albumId", async ({ headers, params, body, set }) => {
+      const ownerId = requireOwner(headers, set);
+      if (!ownerId) return { code: "UNAUTHORIZED", message: "owner identity is required" };
+      return service.rename(ownerId, params.albumId, body.name);
+    }, { params: t.Object({ albumId: t.String() }), body: t.Object({ name: t.String({ minLength: 1, maxLength: 120 }) }) })
     .get("/albums/:albumId", async ({ headers, params, set }) => {
       const ownerId = requireOwner(headers, set);
       if (!ownerId) return { code: "UNAUTHORIZED", message: "owner identity is required" };

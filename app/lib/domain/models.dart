@@ -108,6 +108,7 @@ abstract interface class AlbumRepository {
   Future<Album> createAlbum(String name);
   Future<void> addToAlbum(String postId, String albumId);
   Future<void> removeFromAlbum(String postId, String albumId);
+  Future<Album> renameAlbum(String albumId, String name);
   Future<List<Album>> listAlbums({
     String query = '',
     Set<String> tags = const {},
@@ -336,6 +337,37 @@ class MockAppRepository
       tags: const {},
       updatedAt: DateTime.now(),
       visibility: AlbumVisibility.private,
+    );
+  }
+
+  @override
+  Future<Album> renameAlbum(String albumId, String name) async {
+    final album = (await listAlbums()).firstWhere((item) => item.id == albumId);
+    final oldName = album.name;
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) throw const FormatException('Album name is required.');
+    for (var index = 0; index < _posts.length; index++) {
+      final post = _posts[index];
+      if (!post.albums.contains(oldName)) continue;
+      _posts[index] = SavedPost(
+        id: post.id,
+        title: post.title,
+        description: post.description,
+        platform: post.platform,
+        mediaKind: post.mediaKind,
+        thumbnailUrl: post.thumbnailUrl,
+        mediaUrls: post.mediaUrls,
+        username: post.username,
+        profileImageUrl: post.profileImageUrl,
+        albums: post.albums
+            .map((item) => item == oldName ? trimmed : item)
+            .toList(),
+        color: post.color,
+        tags: post.tags,
+      );
+    }
+    return (await listAlbums()).firstWhere(
+      (item) => item.id == trimmed.toLowerCase(),
     );
   }
 

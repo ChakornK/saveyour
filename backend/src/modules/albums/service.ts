@@ -43,6 +43,17 @@ export class AlbumService {
     });
   }
 
+  async rename(ownerId: string, albumId: string, name: string) {
+    const album = await this.requireAlbum(ownerId, albumId);
+    const trimmed = name.trim();
+    if (!trimmed) throw new AlbumError("NAME_INVALID", "Album name is required");
+    const existing = await this.albums.findByName(ownerId, trimmed);
+    if (existing && existing.id !== albumId) {
+      throw new AlbumError("ALBUM_EXISTS", "That album already exists");
+    }
+    return this.albums.update({ ...album, name: trimmed, updatedAt: new Date().toISOString() });
+  }
+
   async addPost(ownerId: string, albumId: string, postId: string) {
     const album = await this.requireAlbum(ownerId, albumId);
     const post = await this.posts.findById(ownerId, postId);
