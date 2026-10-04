@@ -35,7 +35,8 @@ import { initializeSearchIndex } from "./infrastructure/search/index-init";
 import { SeaweedFsMediaStore } from "./infrastructure/media/seaweedfs-store";
 import { InMemoryMediaStore } from "./modules/media/store";
 import { createMediaRoutes } from "./modules/media/routes";
-import { AuthService } from "./modules/auth/service";
+import { AuthError, AuthService } from "./modules/auth/service";
+import { CaptureError } from "./modules/capture/types";
 import { createAuthRoutes } from "./modules/auth/routes";
 import { MongoMediaAssetRepository } from "./modules/media/repository";
 import { InMemoryCaptureRepository } from "./modules/capture/repository";
@@ -176,6 +177,18 @@ export const createApp = (config: AppConfig) => {
       }),
     )
     .onError(({ code, error, set }) => {
+      if (error instanceof AuthError) {
+        set.status = 401;
+        return { code: error.code, message: error.message };
+      }
+      if (error instanceof CaptureError) {
+        set.status = error.code === "POST_NOT_FOUND" ? 404 : 422;
+        return {
+          code: error.code,
+          message: error.message,
+          ...(error.field ? { field: error.field } : {}),
+        };
+      }
       const requestId = crypto.randomUUID();
       set.status =
         code === "NOT_FOUND" ? 404 : code === "VALIDATION" ? 400 : 500;
