@@ -75,7 +75,7 @@ export const loadConfig = (env: Record<string, string | undefined> = Bun.env): A
   if (!Number.isInteger(geminiMaxAttempts) || geminiMaxAttempts < 1 || geminiMaxAttempts > 5) throw new Error('GEMINI_MAX_ATTEMPTS must be between 1 and 5')
   const authTokens = Object.fromEntries((env.AUTH_TOKENS ?? '').split(',').map((entry) => entry.split(':', 2)).filter(([token, owner]) => token && owner))
   const authRequired = env.AUTH_REQUIRED === 'true' || appEnv === 'production'
-  const cortexTimeoutMs = Number(env.CORTEX_TIMEOUT_MS ?? 60_000)
+  const cortexTimeoutMs = Number(env.CORTEX_TIMEOUT_MS ?? 120_000)
   const cortexMaxAttempts = Number(env.CORTEX_MAX_ATTEMPTS ?? 3)
   if (!Number.isInteger(cortexTimeoutMs) || cortexTimeoutMs < 100) throw new Error('CORTEX_TIMEOUT_MS must be at least 100')
   if (!Number.isInteger(cortexMaxAttempts) || cortexMaxAttempts < 1 || cortexMaxAttempts > 5) throw new Error('CORTEX_MAX_ATTEMPTS must be between 1 and 5')
