@@ -64,6 +64,12 @@ describe('CortexAnalysisProvider', () => {
     expect(calls).toBe(0)
   })
 
+  test('bounds raw transcription output', async () => {
+    const client = new FakeCortexClient(() => ({ text: 'x'.repeat(2000), language: 'en' }))
+    const result = await new CortexAnalysisProvider(client, config).transcribeAudio({ ...image, artifactUri: 's3://private/audio.wav', contentType: 'audio/wav' })
+    expect(JSON.stringify(result.rawProviderResult).length).toBeLessThan(1200)
+  })
+
   test('reports Cortex capability status', async () => {
     const client = new FakeCortexClient()
     const result = await new CortexAnalysisProvider(client, config).checkCapabilities()
