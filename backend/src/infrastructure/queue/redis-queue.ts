@@ -12,6 +12,8 @@ export interface RedisLike {
   zRem?(key: string, value: string): Promise<number>
   keys?(pattern: string): Promise<string[]>
   exists?(key: string): Promise<number>
+  get?(key: string): Promise<string | null>
+  ttl?(key: string): Promise<number>
   keys?(pattern: string): Promise<string[]>
 }
 
@@ -22,8 +24,15 @@ export class RedisJobQueue implements JobQueue {
   async claim(): Promise<AnalysisJob | undefined> { await this.promoteDueRetries(); const jobId = await this.redis.rPop(this.queueKey); if (!jobId) return undefined; const acquired = await this.redis.set(`analysis:lease:${jobId}`, '1', { EX: this.leaseSeconds, NX: true }); if (!acquired) return undefined; return this.repository.get(jobId) }
   async acknowledge(jobId: string) { await this.redis.del(`analysis:lease:${jobId}`) }
   async recoverExpired() {
-    if (!this.redis.keys || !this.redis.exists) return 0
+    if (!this.redis.keys || !this.redis.exists || !this.redis.get || !this.redis.ttl) return 0
     const leases = await this.redis.keys('analysis:lease:*')
-    return leases.length
+    let recovered = 0
+    for (const lease of leases) {
+      if (await this.redis.ttl(lease) > 0) continue
+      const jobId = lease.replace('analysis:lease:', '')
+      await this.redis.lPush(this.queueKey, jobId)
+      recovered += 1
+    }
+    return recovered
   }
 }

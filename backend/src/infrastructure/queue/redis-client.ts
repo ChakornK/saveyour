@@ -14,5 +14,7 @@ export class RedisClientAdapter implements RedisLike {
   async zRem(key: string, value: string) { return this.client.zRem(key, value) }
   async keys(pattern: string) { return this.client.keys(pattern) }
   async exists(key: string) { return this.client.exists(key) }
+  async get(key: string) { return this.client.get(key) }
+  async ttl(key: string) { return this.client.ttl(key) }
   async close() { await this.client.quit() }
 }
