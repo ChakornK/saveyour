@@ -1,24 +1,31 @@
-# SaveYour
+# Stormhacks / saveyour.tech
 
-SaveYour is an application that allows uses to save social media posts from different platforms that are important to them.
+## Verification
 
-## Configuration
+Run backend checks:
 
-The Flutter app does not read Google OAuth JSON files. Configure public app values through Dart defines, usually from a local ignored `.env` file copied from `app/.env.example`:
+```bash
+cd backend
+bun run typecheck
+bun test
+```
+
+Run Flutter checks:
 
 ```bash
 cd app
-cp .env.example .env
-flutter run --dart-define-from-file=.env
+flutter test --no-pub
+flutter analyze --no-pub
 ```
 
-Set `API_BASE_URL` and `GOOGLE_SERVER_CLIENT_ID` in that file. The backend reads Google OAuth settings from environment variables documented in `backend/.env.example`; never commit `.env` files or OAuth credentials.
-## Backend with Docker Compose
-
-From the repository root, start the complete backend (API, workers, and dependencies) with:
+Run the Flutter application with the API configuration:
 
 ```bash
-docker compose -f backend/docker-compose.yml up --build
+cd app
+flutter run --dart-define=API_BASE_URL=http://localhost:3000 \
+  --dart-define=GOOGLE_SERVER_CLIENT_ID=<google-client-id>
 ```
 
-Stop the stack with `docker compose -f backend/docker-compose.yml down`.
+The backend requires the environment values documented in `backend/.env.example`; local development can use the in-memory adapters selected by the non-production environment.
+
+The frontend/backend integration contract and implementation checklist are maintained in `.kiro/specs/frontend-backend-integration/`.

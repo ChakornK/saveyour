@@ -6,7 +6,7 @@ Implement the end-to-end MVP by first inventorying and formalizing the existing 
 
 ## Tasks
 
-- [ ] 1. Establish the current integration baseline
+- [x] 1. Establish the current integration baseline
   - [ ] 1.1 Inventory all Client API calls in `app/lib/services`, screens, and widgets and map each call to an existing backend route.
     - Record mismatched paths, methods, headers, payloads, response fields, and status codes.
     - _Requirements: 2.1, 3.2, 7.1_
@@ -15,7 +15,7 @@ Implement the end-to-end MVP by first inventorying and formalizing the existing 
   - [ ] 1.3 Define the MVP contract fixture set for session, posts, capture, status, media, and error envelopes.
     - _Requirements: 7.1, 7.2_
 
-- [ ] 2. Formalize shared API and domain contracts
+- [x] 2. Formalize shared API and domain contracts
   - [ ] 2.1 Extend or refactor Dart domain models for `Session`, `PostDto`, `CaptureDto`, `MediaReferenceDto`, and `ApiError` with tolerant optional-field decoding.
     - _Requirements: 2.2, 3.3, 4.2, 5.1, 7.4_
   - [ ] 2.2 Align backend route serializers with stable response fields, status values, content types, and error envelopes.
@@ -26,7 +26,7 @@ Implement the end-to-end MVP by first inventorying and formalizing the existing 
     - **Property 6: Post decoding tolerates unknown optional fields**
     - **Validates: Requirements 1.2, 1.4, 6.3, 6.4, 2.2, 7.4**
 
-- [ ] 3. Refactor the Client transport and session boundary
+- [x] 3. Refactor the Client transport and session boundary
   - [ ] 3.1 Implement one typed `ApiClient` transport for base URL configuration, JSON encoding/decoding, timeouts, and typed errors.
     - _Requirements: 6.3, 6.4, 7.1, 7.3_
   - [ ] 3.2 Integrate `SessionManager` with the existing auth and session-store services, including restore, save, expiry, and clear behavior.
@@ -37,7 +37,7 @@ Implement the end-to-end MVP by first inventorying and formalizing the existing 
   - [ ]* 3.4 Add unit tests for request construction, session restore, auth failure, malformed responses, timeout, and retryability mapping.
     - _Requirements: 1.2, 1.3, 1.4, 1.5, 6.1, 6.3, 6.4_
 
-- [ ] 4. Implement feed, detail, and media flows
+- [x] 4. Implement feed, detail, and media flows
   - [ ] 4.1 Replace placeholder or locally fabricated feed data with typed `ApiClient.listPosts` calls.
     - _Requirements: 2.1, 2.2_
   - [ ] 4.2 Add feed refresh, empty, loading, retry, and stale-data-preserving error states.
@@ -49,7 +49,7 @@ Implement the end-to-end MVP by first inventorying and formalizing the existing 
   - [ ]* 4.5 Add Flutter widget tests for feed and detail success, empty, error/retry, refresh, and media fallback states.
     - _Requirements: 2.2, 2.4, 2.5, 5.1, 5.3_
 
-- [ ] 5. Implement the complete capture lifecycle
+- [x] 5. Implement the complete capture lifecycle
   - [ ] 5.1 Add source URL validation in the Client and connect the capture form to `ApiClient.createCapture`.
     - _Requirements: 3.1, 3.5_
   - [ ] 5.2 Align backend capture validation, owner scope, stable identifier generation, and initial status response.
@@ -63,7 +63,7 @@ Implement the end-to-end MVP by first inventorying and formalizing the existing 
   - [ ]* 5.5 Add unit, widget, and backend integration tests for valid URL, invalid URL, duplicate submission, queued/processing/completed/failed statuses, cancellation, and owner isolation.
     - _Requirements: 3.1, 3.2, 3.5, 4.1, 4.2, 4.4, 8.2_
 
-- [ ] 6. Harden backend integration boundaries
+- [x] 6. Harden backend integration boundaries
   - [ ] 6.1 Verify authentication middleware and owner scope on all protected post, capture, status, and media endpoints.
     - _Requirements: 1.5, 3.2, 5.2, 8.2_
   - [ ] 6.2 Verify URL policy, rate limiting, safe public errors, and secret-safe logging for Client-triggered routes.
@@ -73,7 +73,7 @@ Implement the end-to-end MVP by first inventorying and formalizing the existing 
   - [ ]* 6.4 Add route-level contract tests for status codes, headers, response schemas, error envelopes, and authorization boundaries.
     - _Requirements: 7.1, 7.2, 7.3, 8.2_
 
-- [ ] 7. Add full integration verification
+- [x] 7. Add full integration verification
   - [ ] 7.1 Build a deterministic end-to-end test harness with fake AI, media, queue, and persistence dependencies.
     - _Requirements: 8.1, 8.3_
   - [ ] 7.2 Test the complete MVP Flow from session establishment through feed, capture, processing, post detail, and media fallback.
@@ -83,7 +83,7 @@ Implement the end-to-end MVP by first inventorying and formalizing the existing 
   - [ ] 7.4 Document backend, Flutter, and complete integration test commands plus required environment variables.
     - _Requirements: 8.4_
 
-- [ ] 8. Checkpoint - Ensure all tests pass
+- [x] 8. Checkpoint - Ensure all tests pass
   - Run backend tests with the repository's non-watch test command.
   - Run Flutter unit/widget tests.
   - Run the deterministic integration suite.
