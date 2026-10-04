@@ -20,7 +20,8 @@ export interface AlbumSummary extends Omit<Album, "postIds" | "ownerId"> {
 
 export class AlbumError extends Error {
   constructor(
-    public readonly code: "ALBUM_NOT_FOUND" | "ALBUM_EXISTS" | "POST_NOT_FOUND" | "NAME_INVALID",
+    public readonly code:
+      "ALBUM_NOT_FOUND" | "ALBUM_EXISTS" | "POST_NOT_FOUND" | "NAME_INVALID",
     message: string,
   ) {
     super(message);

@@ -136,7 +136,8 @@ export class AuthService {
       ttlSeconds,
       claims.name,
       claims.picture,
-    );  }
+    );
+  }
   async signInWithIdToken(
     idToken: string,
     expected: { clientId: string; issuer: string },
@@ -174,7 +175,8 @@ export class AuthService {
       if (this.accounts.update) await this.accounts.update(account);
     }
     if (!account)
-      account = await this.accounts.create({        id: randomUUID(),
+      account = await this.accounts.create({
+        id: randomUUID(),
         provider: "google",
         googleSubject: subject,
         email: email.trim().toLowerCase(),
@@ -319,7 +321,9 @@ export class GoogleWebCryptoVerifier implements GoogleTokenVerifier {
         subject: claims.sub,
         email: claims.email,
         ...(typeof claims.name === "string" ? { name: claims.name } : {}),
-        ...(typeof claims.picture === "string" ? { picture: claims.picture } : {}),
+        ...(typeof claims.picture === "string"
+          ? { picture: claims.picture }
+          : {}),
         issuer: claims.iss,
         audience: claims.aud,
         expiresAt: claims.exp,
