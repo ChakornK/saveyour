@@ -17,7 +17,7 @@ class PostCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: InkWell(
         onTap: onTap,
-          child: Column(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(child: _media()),

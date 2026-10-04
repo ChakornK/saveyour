@@ -36,7 +36,11 @@ class _BrutalistButtonState extends State<BrutalistButton> {
     };
     final child = AnimatedContainer(
       duration: const Duration(milliseconds: 110),
-      transform: Matrix4.translationValues(_pressed ? 2 : 0, _pressed ? 2 : 0, 0),
+      transform: Matrix4.translationValues(
+        _pressed ? 2 : 0,
+        _pressed ? 2 : 0,
+        0,
+      ),
       constraints: const BoxConstraints(minHeight: 44),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
       decoration: BoxDecoration(
@@ -73,12 +77,20 @@ class _BrutalistButtonState extends State<BrutalistButton> {
       label: widget.tooltip ?? widget.label,
       child: GestureDetector(
         onTap: widget.onPressed,
-        onTapDown: widget.onPressed == null ? null : (_) => setState(() => _pressed = true),
-        onTapUp: widget.onPressed == null ? null : (_) => setState(() => _pressed = false),
-        onTapCancel: widget.onPressed == null ? null : () => setState(() => _pressed = false),
+        onTapDown: widget.onPressed == null
+            ? null
+            : (_) => setState(() => _pressed = true),
+        onTapUp: widget.onPressed == null
+            ? null
+            : (_) => setState(() => _pressed = false),
+        onTapCancel: widget.onPressed == null
+            ? null
+            : () => setState(() => _pressed = false),
         child: child,
       ),
     );
-    return widget.tooltip == null ? button : Tooltip(message: widget.tooltip!, child: button);
+    return widget.tooltip == null
+        ? button
+        : Tooltip(message: widget.tooltip!, child: button);
   }
 }

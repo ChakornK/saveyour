@@ -3,7 +3,12 @@ import 'package:flutter/material.dart';
 import '../domain/models.dart';
 
 class SourceIcon extends StatelessWidget {
-  const SourceIcon({super.key, required this.platform, this.size = 20, this.showLabel = false});
+  const SourceIcon({
+    super.key,
+    required this.platform,
+    this.size = 20,
+    this.showLabel = false,
+  });
   final SourcePlatform platform;
   final double size;
   final bool showLabel;
@@ -21,9 +26,31 @@ class SourceIcon extends StatelessWidget {
       width: size + 12,
       height: size + 12,
       alignment: Alignment.center,
-      decoration: BoxDecoration(color: brand.$1, borderRadius: BorderRadius.circular(4)),
-      child: Text(brand.$2, style: TextStyle(color: Colors.white, fontSize: size * .65, fontWeight: FontWeight.w900)),
+      decoration: BoxDecoration(
+        color: brand.$1,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        brand.$2,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: size * .65,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
     );
-    return Semantics(label: '${brand.$3} source', image: true, child: Tooltip(message: brand.$3, child: showLabel ? Row(mainAxisSize: MainAxisSize.min, children: [icon, const SizedBox(width: 6), Text(brand.$3)]) : icon));
+    return Semantics(
+      label: '${brand.$3} source',
+      image: true,
+      child: Tooltip(
+        message: brand.$3,
+        child: showLabel
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [icon, const SizedBox(width: 6), Text(brand.$3)],
+              )
+            : icon,
+      ),
+    );
   }
 }

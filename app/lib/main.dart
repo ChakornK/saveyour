@@ -7,6 +7,7 @@ import 'services/share_intent.dart';
 import 'theme/app_theme.dart';
 import 'widgets/post_card.dart';
 import 'widgets/post_detail_modal.dart';
+import 'screens.dart';
 
 void main() => runApp(const SaveYourTechApp());
 
@@ -102,7 +103,13 @@ class _HomePageState extends State<HomePage> {
               selected: _tab,
               onSelect: (value) => setState(() => _tab = value),
             ),
-          Expanded(child: _tab == 0 ? _homeContent() : _placeholderContent()),
+          Expanded(
+            child: _tab == 0
+                ? _homeContent()
+                : _tab == 1
+                ? AlbumsPage(repository: _repository, onOpenPost: _openPost)
+                : ProfilePage(repository: _repository),
+          ),
         ],
       ),
       bottomNavigationBar: wide
@@ -184,14 +191,6 @@ class _HomePageState extends State<HomePage> {
           ),
         const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
       ],
-    ),
-  );
-
-  Widget _placeholderContent() => Center(
-    child: BrutalSurface(
-      child: Text(
-        _tab == 1 ? 'Albums are coming next.' : 'Your profile will live here.',
-      ),
     ),
   );
 

@@ -4,13 +4,15 @@ enum MediaKind { image, carousel, video, text }
 
 enum SourcePlatform { instagram, reddit, tiktok, facebook, x }
 
+enum AlbumVisibility { private, public }
+
+enum AlbumSort { recent, source, tag }
+
 class LoadState<T> {
   const LoadState(this.status, {this.data, this.message});
-
   final LoadStatus status;
   final T? data;
   final String? message;
-
   bool get hasData => data != null;
   bool get isLoading =>
       status == LoadStatus.loading || status == LoadStatus.refreshing;
@@ -31,7 +33,6 @@ class SavedPost {
     this.color = 0xFF00D696,
     this.tags = const [],
   });
-
   final String id;
   final String title;
   final String description;
@@ -46,6 +47,50 @@ class SavedPost {
   final List<String> tags;
 }
 
+class Album {
+  const Album({
+    required this.id,
+    required this.name,
+    required this.coverPost,
+    required this.postCount,
+    required this.tags,
+    required this.updatedAt,
+    required this.visibility,
+  });
+  final String id;
+  final String name;
+  final SavedPost? coverPost;
+  final int postCount;
+  final Set<String> tags;
+  final DateTime updatedAt;
+  final AlbumVisibility visibility;
+}
+
+class AlbumDetail {
+  const AlbumDetail({required this.album, required this.posts});
+  final Album album;
+  final List<SavedPost> posts;
+}
+
+class UserProfile {
+  const UserProfile({
+    required this.displayName,
+    required this.username,
+    required this.avatarUrl,
+    required this.savedPostCount,
+    required this.albumCount,
+    required this.sourceCount,
+    required this.tagCount,
+  });
+  final String displayName;
+  final String username;
+  final String? avatarUrl;
+  final int savedPostCount;
+  final int albumCount;
+  final int sourceCount;
+  final int tagCount;
+}
+
 abstract interface class AppRepository {
   Future<List<SavedPost>> listPosts({String? query});
   Future<void> saveLink(String url);
@@ -53,7 +98,21 @@ abstract interface class AppRepository {
   Future<void> removeFromAlbum(String postId, String album);
 }
 
-class MockAppRepository implements AppRepository {
+abstract interface class AlbumRepository {
+  Future<List<Album>> listAlbums({
+    String query = '',
+    Set<String> tags = const {},
+  });
+  Future<AlbumDetail> getAlbum(String albumId);
+}
+
+abstract interface class ProfileRepository {
+  Future<UserProfile> getProfile();
+  Future<void> logOut();
+}
+
+class MockAppRepository
+    implements AppRepository, AlbumRepository, ProfileRepository {
   final List<SavedPost> _posts = [
     const SavedPost(
       id: '1',
@@ -168,65 +227,89 @@ class MockAppRepository implements AppRepository {
       color: 0xFF00D696,
       tags: ['planning', 'habits'],
     ),
-    const SavedPost(
-      id: '10',
-      title: 'Tiny homes, big ideas',
-      description: 'A carousel of clever storage solutions for small rooms.',
-      platform: SourcePlatform.instagram,
-      mediaKind: MediaKind.carousel,
-      thumbnailUrl:
-          'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=900',
-      username: '@smallspace.club',
-      albums: ['Workspace', 'References'],
-      color: 0xFF0099FF,
-      tags: ['home', 'design'],
-    ),
-    const SavedPost(
-      id: '11',
-      title: 'Notes on making room for better work',
-      description:
-          'I used to think a productive week came from finding the perfect system. '
-          'The right app, the right notebook, the right morning routine, and a '
-          'carefully color-coded list for every loose end. What actually helped '
-          'was much less exciting: deciding what deserved my attention before the '
-          'week began, leaving generous space between commitments, and accepting '
-          'that unfinished work is not the same thing as failed work. A quiet '
-          'calendar gave me enough room to notice which projects still mattered. '
-          'That is the part I want to remember when the next busy season arrives.',
-      platform: SourcePlatform.x,
-      mediaKind: MediaKind.text,
-      username: '@thoughtfulwork',
-      albums: ['Reading', 'Ideas'],
-      color: 0xFF7A83FF,
-      tags: ['work', 'reflection', 'planning'],
-    ),
   ];
 
   @override
   Future<List<SavedPost>> listPosts({String? query}) async {
-    await Future<void>.delayed(const Duration(milliseconds: 120));
+    await Future<void>.delayed(const Duration(milliseconds: 80));
     if (query == null || query.trim().isEmpty) return List.unmodifiable(_posts);
     final needle = query.toLowerCase();
     return _posts
         .where(
-          (post) => '${post.title} ${post.description} ${post.tags.join(' ')}'
-              .toLowerCase()
-              .contains(needle),
+          (p) =>
+              '${p.title} ${p.description} ${p.tags.join(' ')} ${p.platform.name}'
+                  .toLowerCase()
+                  .contains(needle),
         )
         .toList();
   }
 
   @override
+  Future<List<Album>> listAlbums({
+    String query = '',
+    Set<String> tags = const {},
+  }) async {
+    final albums = <String, List<SavedPost>>{};
+    for (final post in _posts)
+      for (final album in post.albums)
+        albums.putIfAbsent(album, () => []).add(post);
+    final needle = query.toLowerCase();
+    return albums.entries
+        .map(
+          (entry) => Album(
+            id: entry.key.toLowerCase(),
+            name: entry.key,
+            coverPost: entry.value.first,
+            postCount: entry.value.length,
+            tags: entry.value.expand((p) => p.tags).toSet(),
+            updatedAt: DateTime.now(),
+            visibility: AlbumVisibility.private,
+          ),
+        )
+        .where(
+          (a) =>
+              (needle.isEmpty ||
+                  '${a.name} ${a.tags.join(' ')}'.toLowerCase().contains(
+                    needle,
+                  )) &&
+              (tags.isEmpty || tags.any(a.tags.contains)),
+        )
+        .toList();
+  }
+
+  @override
+  Future<AlbumDetail> getAlbum(String albumId) async {
+    final albums = await listAlbums();
+    final album = albums.firstWhere((a) => a.id == albumId);
+    return AlbumDetail(
+      album: album,
+      posts: _posts.where((p) => p.albums.contains(album.name)).toList(),
+    );
+  }
+
+  @override
+  Future<UserProfile> getProfile() async => UserProfile(
+    displayName: 'Alex Morgan',
+    username: '@alexremembers',
+    avatarUrl:
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400',
+    savedPostCount: _posts.length,
+    albumCount: (await listAlbums()).length,
+    sourceCount: _posts.map((p) => p.platform).toSet().length,
+    tagCount: _posts.expand((p) => p.tags).toSet().length,
+  );
+  @override
+  Future<void> logOut() async {}
+  @override
   Future<void> saveLink(String url) async {
-    final parsed = Uri.tryParse(url.trim());
-    if (parsed == null || !['http', 'https'].contains(parsed.scheme))
+    if (Uri.tryParse(url.trim())?.scheme case final scheme?
+        when !['http', 'https'].contains(scheme))
       throw const FormatException('Enter a valid public link.');
   }
 
   @override
   Future<void> removePost(String id) async =>
-      _posts.removeWhere((post) => post.id == id);
-
+      _posts.removeWhere((p) => p.id == id);
   @override
   Future<void> removeFromAlbum(String postId, String album) async {}
 }

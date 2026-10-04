@@ -55,7 +55,7 @@ class PostDetailModal extends StatelessWidget {
     minChildSize: .5,
     builder: (context, controller) => Material(
       color: AppColors.paper,
-      shape: const RoundedRectangleBorder(
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(5),
         side: BorderSide(color: AppColors.ink, width: 2),
       ),
