@@ -30,8 +30,8 @@ describe('infrastructure contracts', () => {
 
   test('rate limit store resets expired windows', async () => {
     const store = new InMemoryRateLimitStore()
-    const first = await store.increment('owner', 10)
-    const second = await store.increment('owner', 10)
+    const first = await store.increment('owner', 10_000)
+    const second = await store.increment('owner', 10_000)
     expect(first.count).toBe(1)
     expect(second.count).toBe(2)
   })
