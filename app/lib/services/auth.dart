@@ -27,7 +27,7 @@ class AuthSession {
 class GoogleAuthService {
   GoogleAuthService({
     this.baseUrl = 'http://10.0.2.2:3000',
-    this.serverClientId = '414871424622-5fn2bcqqsut5jfr5j6kk3tdtf206j0me.apps.googleusercontent.com',
+    this.serverClientId = '414871424622-6qao1i3h52737um7pi73riha5d9ra8gc.apps.googleusercontent.com',
     http.Client? client,
     FlutterSecureStorage? storage,
     GoogleSignIn? googleSignIn,
