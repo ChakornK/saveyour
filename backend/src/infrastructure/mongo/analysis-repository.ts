@@ -23,27 +23,34 @@ export class MongoAnalysisRepository implements AnalysisRepository {
   }
   async save(job: AnalysisJob) {
     const { _id, ...document } = job as AnalysisJob & { _id?: unknown };
-    await this.jobs.replaceOne({ idempotencyKey: job.idempotencyKey }, document, {
-      upsert: true,
-    });
+    await this.jobs.updateOne(
+      { idempotencyKey: job.idempotencyKey },
+      { $set: document },
+      { upsert: true },
+    );
     return structuredClone(job);
   }
+  private withoutMongoId(job: AnalysisJob & { _id?: unknown }) {
+    const { _id, ...document } = job;
+    return document as AnalysisJob;
+  }
+
   async get(id: string) {
     const job = await this.jobs.findOne({ id });
-    return job ? structuredClone(job) : undefined;
+    return job ? structuredClone(this.withoutMongoId(job)) : undefined;
   }
   async findByKey(key: string) {
     const job = await this.jobs.findOne({ idempotencyKey: key });
-    return job ? structuredClone(job) : undefined;
+    return job ? structuredClone(this.withoutMongoId(job)) : undefined;
   }
   async listRetryable() {
     return (await this.jobs.find({ status: "processing" }).toArray()).map(
-      (job) => structuredClone(job),
+      (job) => structuredClone(this.withoutMongoId(job)),
     );
   }
   async updateStage(id: string, stage: AnalysisStage, state: StageState) {
     const result = await this.jobs.findOneAndUpdate(
-      { id },
+      { id: id },
       {
         $set: {
           [`stages.${stage}`]: state,
@@ -53,6 +60,6 @@ export class MongoAnalysisRepository implements AnalysisRepository {
       { returnDocument: "after" },
     );
     if (!result) throw new Error("Analysis job not found");
-    return structuredClone(result);
+    return structuredClone(this.withoutMongoId(result));
   }
 }
