@@ -18,6 +18,14 @@ describe("ONNX image tagger", () => {
     await expect(tagger.tagImage({ bytes: new Uint8Array([1, 2, 3]), mimeType: "image/jpeg" })).rejects.toThrow("IMAGE_TAGGER_INPUT_TOO_LARGE");
   });
 
+  test("reports decode errors without exposing image bytes", async () => {
+    const metrics: Array<{ outcome: string; payloadBytes: number }> = [];
+    const tagger = new OnnxClipImageTagger({ visionModelPath: "/missing.onnx", labels: ["cat"], onMetrics: (value) => metrics.push(value) });
+    await expect(tagger.tagImage({ bytes: new Uint8Array([1, 2, 3]), mimeType: "image/jpeg" })).rejects.toThrow();
+    expect(metrics).toHaveLength(1);
+    expect(metrics[0]).toMatchObject({ outcome: "error", payloadBytes: 3 });
+  });
+
   test("reports empty-input metrics without exposing payloads", async () => {
     const metrics: unknown[] = [];
     const tagger = new OnnxClipImageTagger({ visionModelPath: "/missing.onnx", labels: ["cat"], onMetrics: (value) => metrics.push(value) });
