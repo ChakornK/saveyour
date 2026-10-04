@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 
+import 'session_store.dart';
 const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
 const googleServerClientId = String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
 
@@ -41,9 +42,11 @@ class GoogleAuthService {
     http.Client? client,
     FlutterSecureStorage? storage,
     GoogleSignIn? googleSignIn,
+    SessionStore? sessions,
   })  : _client = client ?? http.Client(),
         _storage = storage ?? const FlutterSecureStorage(),
-        _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
+        _googleSignIn = googleSignIn ?? GoogleSignIn.instance,
+        _sessions = sessions ?? SecureSessionStore();
 
   static const _sessionKey = 'backend_session_token';
   static const _accountIdKey = 'backend_account_id';
@@ -54,6 +57,7 @@ class GoogleAuthService {
   final http.Client _client;
   final FlutterSecureStorage _storage;
   final GoogleSignIn _googleSignIn;
+  final SessionStore _sessions;
   AuthSession? _session;
 
   AuthSession? get session => _session;
@@ -61,11 +65,13 @@ class GoogleAuthService {
   String? get email => _session?.email;
 
   Future<bool> restoreSession() async {
-    final token = await _storage.read(key: _sessionKey);
-    final accountId = await _storage.read(key: _accountIdKey);
-    final email = await _storage.read(key: _emailKey);
-    if (token == null || accountId == null || email == null) return false;
-    _session = AuthSession(accountId: accountId, email: email, token: token);
+    final session = await _sessions.read();
+    if (session == null) return false;
+    _session = AuthSession(
+      accountId: session.accountId,
+      email: session.email ?? '',
+      token: session.token,
+    );
     return true;
   }
 
@@ -94,9 +100,13 @@ class GoogleAuthService {
       throw const AuthException('Backend returned an invalid sign-in response.');
     }
     final session = AuthSession.fromJson(decoded);
-    await _storage.write(key: _sessionKey, value: session.token);
-    await _storage.write(key: _accountIdKey, value: session.accountId);
-    await _storage.write(key: _emailKey, value: session.email);
+    await _sessions.write(
+      Session(
+        token: session.token,
+        accountId: session.accountId,
+        email: session.email,
+      ),
+    );
     _session = session;
     return session;
   }
@@ -110,9 +120,7 @@ class GoogleAuthService {
       );
     }
     await _googleSignIn.signOut();
-    await _storage.delete(key: _sessionKey);
-    await _storage.delete(key: _accountIdKey);
-    await _storage.delete(key: _emailKey);
+    await _sessions.clear();
     _session = null;
   }
 

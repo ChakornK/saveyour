@@ -46,7 +46,7 @@ void main() {
     await api.removeFromAlbum('p1', 'My Album & Stuff');
     expect(requests[0].method, 'POST');
     expect(jsonDecode(requests[0].body), {'url': 'https://example.com/a'});
-    expect(requests[1].url.path, '/posts/post/1');
+    expect(requests[1].url.path, '/captured-posts/post%2F1');
     expect(requests[2].url.path, contains('My%20Album%20%26%20Stuff'));
   });
 
