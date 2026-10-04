@@ -4,13 +4,28 @@ import { Tokenizer } from "@huggingface/tokenizers";
 
 export interface ImageTag { label: string; confidence: number }
 export interface ImageTagger { tagImage(input: { bytes: Uint8Array; mimeType: string }): Promise<ImageTag[]> }
-export interface ClipTaggerConfig { visionModelPath: string; textModelPath?: string; tokenizerPath?: string; tokenizerConfigPath?: string; labels: string[]; threshold?: number }
+export interface ImageTaggerMetrics {
+  payloadBytes: number;
+  preprocessingMs: number;
+  inferenceMs: number;
+  modelVersion?: string;
+  outcome: "success" | "empty" | "error";
+}
+export interface ClipTaggerConfig { visionModelPath: string; textModelPath?: string; tokenizerPath?: string; tokenizerConfigPath?: string; labels: string[]; threshold?: number; maxBytes?: number; timeoutMs?: number; modelVersion?: string; onMetrics?: (metrics: ImageTaggerMetrics) => void }
 
 export class OnnxClipImageTagger implements ImageTagger {
   private vision?: Promise<ort.InferenceSession>;
   private tokenizer?: Promise<Tokenizer>;
   private text?: Promise<ort.InferenceSession>;
   constructor(private readonly config: ClipTaggerConfig) {}
+  private emit(metrics: ImageTaggerMetrics) { this.config.onMetrics?.(metrics); }
+  private async withTimeout<T>(work: Promise<T>): Promise<T> {
+    const timeoutMs = this.config.timeoutMs ?? 10_000;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([work, new Promise<T>((_, reject) => { timer = setTimeout(() => reject(new Error("IMAGE_TAGGER_TIMEOUT")), timeoutMs); })]);
+    } finally { if (timer) clearTimeout(timer); }
+  }
   private getVision() { return (this.vision ??= ort.InferenceSession.create(this.config.visionModelPath)); }
   private async getTokenizer() {
     if (!this.config.tokenizerPath || !this.config.tokenizerConfigPath) throw new Error("CLIP tokenizer assets are missing");
@@ -33,7 +48,10 @@ export class OnnxClipImageTagger implements ImageTagger {
     return values.map((value) => value / norm);
   }
   async tagImage(input: { bytes: Uint8Array; mimeType: string }) {
-    if (!input.mimeType.startsWith("image/") || !input.bytes.byteLength) return [];
+    const payloadBytes = input.bytes.byteLength;
+    if (!input.mimeType.startsWith("image/") || !payloadBytes) { this.emit({ payloadBytes, preprocessingMs: 0, inferenceMs: 0, modelVersion: this.config.modelVersion, outcome: "empty" }); return []; }
+    if (payloadBytes > (this.config.maxBytes ?? 25 * 1024 * 1024)) throw new Error("IMAGE_TAGGER_INPUT_TOO_LARGE");
+    const preprocessingStarted = performance.now();
     const { data, info } = await sharp(input.bytes).resize(224, 224, { fit: "cover" }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
     const pixels = new Float32Array(3 * 224 * 224);
     for (let y = 0; y < 224; y++) for (let x = 0; x < 224; x++) {
@@ -43,20 +61,25 @@ export class OnnxClipImageTagger implements ImageTagger {
       pixels[224 * 224 + target] = (data[source + 1] / 255 - 0.4578275) / 0.26130258;
       pixels[2 * 224 * 224 + target] = (data[source + 2] / 255 - 0.40821073) / 0.27577711;
     }
+    const preprocessingMs = performance.now() - preprocessingStarted;
+    const inferenceStarted = performance.now();
     const session = await this.getVision();
     const inputName = session.inputNames.find((name) => name === "pixel_values");
     const outputName = session.outputNames.find((name) => name === "image_embeds");
     if (!inputName || !outputName) throw new Error("ONNX vision model contract is invalid");
-    const output = await session.run({ [inputName]: new ort.Tensor("float32", pixels, [1, 3, 224, 224]) });
+    const output = await this.withTimeout(session.run({ [inputName]: new ort.Tensor("float32", pixels, [1, 3, 224, 224]) }));
     const embedding = Array.from(output[outputName].data as Float32Array);
     const norm = Math.sqrt(embedding.reduce((sum, value) => sum + value * value, 0)) || 1;
     const normalized = embedding.map((value) => value / norm);
-    if (!this.config.textModelPath || !this.config.tokenizerPath || !this.config.tokenizerConfigPath) return [];
+    const inferenceMs = performance.now() - inferenceStarted;
+    if (!this.config.textModelPath || !this.config.tokenizerPath || !this.config.tokenizerConfigPath) { this.emit({ payloadBytes, preprocessingMs, inferenceMs, modelVersion: this.config.modelVersion, outcome: "empty" }); return []; }
     const tags = await Promise.all(this.config.labels.map(async (label) => {
       const text = await this.textEmbedding(label);
       const similarity = normalized.reduce((sum, value, index) => sum + value * (text[index] ?? 0), 0);
       return { label, confidence: Math.max(0, Math.min(1, (similarity + 1) / 2)) };
     }));
-    return tags.filter((tag) => tag.confidence >= (this.config.threshold ?? 0.5)).sort((a, b) => b.confidence - a.confidence).slice(0, 12);
+    const results = tags.filter((tag) => tag.confidence >= (this.config.threshold ?? 0.5)).sort((a, b) => b.confidence - a.confidence).slice(0, 12);
+    this.emit({ payloadBytes, preprocessingMs, inferenceMs, modelVersion: this.config.modelVersion, outcome: results.length ? "success" : "empty" });
+    return results;
   }
 }
