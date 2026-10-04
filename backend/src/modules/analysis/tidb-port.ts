@@ -52,6 +52,20 @@ export class SqlTiDBIntegrationPort implements TiDBIntegrationPort {
     return { jobId, owner: workerId, version: current[0].lease_version, acquiredAt: now.toISOString(), expiresAt: expires.toISOString() };
   }
 
+  async renewLease(lease: JobLease, expiresAt: string): Promise<JobLease> {
+    await this.db.query("UPDATE analysis_jobs SET lease_expires_at = ?, updated_at = CURRENT_TIMESTAMP(3) WHERE id = ? AND lease_owner = ? AND lease_version = ?", [expiresAt, lease.jobId, lease.owner, lease.version]);
+    const rows = await this.db.query<{ lease_version: number; lease_expires_at: string }>("SELECT lease_version, lease_expires_at FROM analysis_jobs WHERE id = ? AND lease_owner = ? AND lease_version = ?", [lease.jobId, lease.owner, lease.version]);
+    const row = rows[0];
+    if (!row) throw new Error("STALE_LEASE");
+    return { ...lease, expiresAt: row.lease_expires_at };
+  }
+
+  async reclaimExpiredLeases(now: string): Promise<number> {
+    const rows = await this.db.query<{ id: string }>("SELECT id FROM analysis_jobs WHERE lease_expires_at IS NOT NULL AND lease_expires_at <= ?", [now]);
+    await this.db.query("UPDATE analysis_jobs SET lease_owner = NULL, lease_expires_at = NULL, status = 'queued', updated_at = ? WHERE lease_expires_at IS NOT NULL AND lease_expires_at <= ?", [now, now]);
+    return rows.length;
+  }
+
   async loadJobContext(jobId: string): Promise<JobContext> {
     const rows = await this.db.query<JobContext>("SELECT * FROM analysis_job_context WHERE job_id = ?", [jobId]);
     if (!rows[0]) throw new Error("Job context not found");

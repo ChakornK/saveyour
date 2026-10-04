@@ -24,6 +24,14 @@ export class CaptureTransactionPort implements TiDBIntegrationPort {
     return this.store.createPostAndJob({ ...input, idempotencyKey });
   }
 
+  renewLease(): Promise<never> {
+    return Promise.reject(new Error("Lease support is not configured"));
+  }
+
+  reclaimExpiredLeases(): Promise<never> {
+    return Promise.reject(new Error("Lease support is not configured"));
+  }
+
   claimLease(): Promise<never> {
     return Promise.reject(new Error("Lease support is not configured"));
   }
