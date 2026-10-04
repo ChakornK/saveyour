@@ -58,7 +58,7 @@ Implement the Cortex-only provider independently from TiDB and the integration c
   - Add one approved live short-audio `AI_TRANSCRIBE` test.
   - _Requirements: 6.1-6.5_
 
-- [ ] 8. Checkpoint — provider release readiness
+- [x] 8. Checkpoint — provider release readiness
   - Run typecheck and provider unit/fixture tests.
   - Verify no provider test requires TiDB or Redis.
   - Verify secrets and signed URLs never appear in logs.
