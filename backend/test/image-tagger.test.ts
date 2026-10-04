@@ -7,4 +7,9 @@ describe("ONNX image tagger", () => {
     expect(await tagger.tagImage({ bytes: new Uint8Array(), mimeType: "image/jpeg" })).toEqual([]);
     expect(await tagger.tagImage({ bytes: new Uint8Array([1]), mimeType: "text/plain" })).toEqual([]);
   });
+
+  test("returns no labels for empty input without loading model", async () => {
+    const tagger = new OnnxClipImageTagger({ visionModelPath: "/missing.onnx", labels: ["cat"] });
+    expect(await tagger.tagImage({ bytes: new Uint8Array(), mimeType: "image/jpeg" })).toEqual([]);
+  });
 });
