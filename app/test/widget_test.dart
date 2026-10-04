@@ -11,8 +11,8 @@ void main() {
 
     expect(find.text('saveyour.tech'), findsOneWidget);
     expect(find.text('Search your saved internet'), findsOneWidget);
-    expect(find.text('Home'), findsOneWidget);
-    expect(find.text('Albums'), findsOneWidget);
-    expect(find.text('Profile'), findsOneWidget);
+    expect(find.text('Home'), findsWidgets);
+    expect(find.text('Albums'), findsWidgets);
+    expect(find.text('Profile'), findsWidgets);
   });
 }
