@@ -191,13 +191,12 @@ export class AuthService {
       tokenHash: hashToken(token),
       expiresAt,
     };
-    void this.sessions.create(session);
+    await this.sessions.create(session);
     return { account, token, expiresAt };
   }
-  authenticate(token: string): OwnerScope {
+  async authenticate(token: string): Promise<OwnerScope> {
     const tokenHash = hashToken(token);
-    const session = this.sessions.findByTokenHash(tokenHash) as unknown as
-      SessionRecord | undefined;
+    const session = await this.sessions.findByTokenHash(tokenHash);
     if (!session)
       throw new AuthError("AUTH_REQUIRED", "Authentication is required");
     if (session.revokedAt || session.expiresAt <= Date.now())
@@ -212,8 +211,8 @@ export class AuthService {
 
   async revoke(token: string) {
     const tokenHash = hashToken(token);
-    if (this.redis) void this.redis.del(`auth:session:${tokenHash}`);
-    void this.sessions.revokeByTokenHash(tokenHash, Date.now());
+    if (this.redis) await this.redis.del(`auth:session:${tokenHash}`);
+    await this.sessions.revokeByTokenHash(tokenHash, Date.now());
   }
 }
 

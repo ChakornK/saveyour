@@ -24,8 +24,10 @@ export const createAuthRoutes = (config: AppConfig, auth: AuthService) =>
       },
     )
     .get("/auth/me", async ({ headers }) => {
-      const accountId = auth.authenticate(
-        headers.authorization?.replace(/^Bearer\s+/i, "") ?? "",
+      const accountId = (
+        await auth.authenticate(
+          headers.authorization?.replace(/^Bearer\s+/i, "") ?? "",
+        )
       ).ownerId;
       const account = await auth.getAccount(accountId);
       return {

@@ -10,7 +10,7 @@ export const profileRoutes = (auth: AuthService, captures: CaptureService) =>
       set.status = 401;
       return { code: "AUTH_REQUIRED", message: "Authentication is required" };
     }
-    const ownerId = auth.authenticate(token).ownerId;
+    const ownerId = (await auth.authenticate(token)).ownerId;
     const page = await captures.list({ ownerId }, undefined, 100);
     const posts = page.items;
     const tags = new Set<string>();

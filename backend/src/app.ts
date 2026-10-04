@@ -151,9 +151,15 @@ export const createApp = (config: AppConfig) => {
     undefined,
     new QueuePublisher(queue),
   );
+  const authAccounts = useDurableInfrastructure
+    ? new MongoAccountRepository(mongo!)
+    : new InMemoryAccountRepository();
+  const authSessions = useDurableInfrastructure
+    ? new MongoSessionRepository(mongo!)
+    : new InMemorySessionRepository();
   const authService = new AuthService(
-    useDurableInfrastructure ? new MongoAccountRepository(mongo!) : new InMemoryAccountRepository(),
-    useDurableInfrastructure ? new MongoSessionRepository(mongo!) : new InMemorySessionRepository(),
+    authAccounts,
+    authSessions,
     new GoogleWebCryptoVerifier(
       "https://www.googleapis.com/oauth2/v3/certs",
     ),
@@ -180,6 +186,16 @@ export const createApp = (config: AppConfig) => {
       authentication({
         required: config.authRequired,
         tokens: config.authTokens,
+        authenticate: async (token) => {
+          try {
+            return (await authService.authenticate(token)).ownerId;
+          } catch (error) {
+            if (!config.authRequired && config.authTokens[token]) {
+              return config.authTokens[token];
+            }
+            throw error;
+          }
+        },
       }),
     )
     .onError(({ code, error, set }) => {
@@ -218,6 +234,7 @@ export const createApp = (config: AppConfig) => {
       version: "0.1.0",
     }));
   return Object.assign(app, {
+    auth: authService,
     initialize,
     close: async () => {
       await redis?.close();

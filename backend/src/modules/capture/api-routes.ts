@@ -3,7 +3,7 @@ import { AuthError, AuthService } from "../auth/service";
 import { CaptureError } from "./types";
 import { CaptureService } from "./service";
 
-const scopeFromHeaders = (
+const scopeFromHeaders = async (
   auth: AuthService,
   authorization: string | undefined,
 ) => {
