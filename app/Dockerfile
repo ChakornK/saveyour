@@ -7,7 +7,7 @@ RUN flutter pub get
 COPY . .
 ARG API_BASE_URL
 ARG GOOGLE_SERVER_CLIENT_ID
-RUN flutter build web --release --no-pub \
+RUN flutter build web \
   --dart-define=API_BASE_URL=${API_BASE_URL} \
   --dart-define=GOOGLE_SERVER_CLIENT_ID=${GOOGLE_SERVER_CLIENT_ID}
 
