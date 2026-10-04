@@ -11,7 +11,7 @@ export class InMemoryIntegrationMetrics implements IntegrationMetrics {
   retriesExhausted = 0;
   backlog = 0;
   stageLatency(stage: string, milliseconds: number, correlationId: string) { this.latencies.push({ stage, milliseconds, correlationId }); }
-  leaseConflict() { this.leaseConflicts += 1; }
-  retryExhausted() { this.retriesExhausted += 1; }
+  leaseConflict(_correlationId: string) { this.leaseConflicts += 1; }
+  retryExhausted(_correlationId: string) { this.retriesExhausted += 1; }
   outboxBacklog(size: number) { this.backlog = size; }
 }
