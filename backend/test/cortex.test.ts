@@ -47,6 +47,13 @@ describe('CortexAnalysisProvider', () => {
     expect(provider.getMetrics()).toMatchObject([{ operation: 'AI_COMPLETE', attempts: 1, outcome: 'success' }])
   })
 
+  test('rejects unsupported audio before invoking Cortex', async () => {
+    let calls = 0
+    const client = new FakeCortexClient(() => { calls += 1; return { text: 'unexpected' } })
+    await expect(new CortexAnalysisProvider(client, config).transcribeAudio({ ...image, artifactUri: 's3://private/video.mp4', contentType: 'video/mp4' })).rejects.toMatchObject({ category: 'input' })
+    expect(calls).toBe(0)
+  })
+
   test('does not retry capability errors', async () => {
     let attempts = 0
     const client = new FakeCortexClient(() => { attempts += 1; throw new CortexError('capability', 'AI_TRANSCRIBE unavailable') })
