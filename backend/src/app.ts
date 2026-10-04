@@ -3,6 +3,7 @@ import openapi from '@elysiajs/openapi'
 import { Elysia } from 'elysia'
 import type { AppConfig } from './config/env'
 import { healthRoutes } from './modules/health/routes'
+import { normalizeUrl } from './modules/capture/service'
 
 export const createApp = (config: AppConfig) =>
   new Elysia({ name: 'saveyour-tech-api' })
@@ -20,4 +21,18 @@ export const createApp = (config: AppConfig) =>
       }
     })
     .use(healthRoutes)
+    .post('/capture/preview', ({ body, set }) => {
+      const input = body as { url?: unknown }
+      if (typeof input.url !== 'string') {
+        set.status = 400
+        return { code: 'invalid_url', message: 'A URL is required' }
+      }
+      try {
+        return normalizeUrl(input.url)
+      } catch (error) {
+        set.status = 400
+        const code = error instanceof Error ? error.message : 'invalid_url'
+        return { code, message: code === 'unsupported_platform' ? 'This platform is not supported yet' : 'Enter a valid public URL' }
+      }
+    })
     .get('/', () => ({ name: 'saveyour.tech API', status: 'ok' as const, version: '0.1.0' }))
