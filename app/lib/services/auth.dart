@@ -4,6 +4,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 
+const apiBaseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'http://10.0.2.2:3000',
+);
+
 class AuthSession {
   const AuthSession({required this.accountId, required this.email, required this.token});
 
@@ -26,7 +31,7 @@ class AuthSession {
 
 class GoogleAuthService {
   GoogleAuthService({
-    this.baseUrl = 'http://10.0.2.2:3000',
+    this.baseUrl = apiBaseUrl,
     this.serverClientId = '414871424622-6qao1i3h52737um7pi73riha5d9ra8gc.apps.googleusercontent.com',
     http.Client? client,
     FlutterSecureStorage? storage,

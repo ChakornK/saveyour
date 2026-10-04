@@ -4,8 +4,13 @@ import 'package:http/http.dart' as http;
 
 import '../domain/models.dart';
 
+const apiBaseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'http://10.0.2.2:3000',
+);
+
 class ApiClient implements AppRepository {
-  ApiClient({http.Client? client, this.baseUrl = 'http://10.0.2.2:3000', this.authToken})
+  ApiClient({http.Client? client, this.baseUrl = apiBaseUrl, this.authToken})
     : _client = client ?? http.Client();
 
   final http.Client _client;
