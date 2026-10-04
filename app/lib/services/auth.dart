@@ -76,7 +76,10 @@ class GoogleAuthService {
 
   Future<bool> restoreSession() async {
     final session = await _sessions.read();
-    if (session == null) return false;
+    if (session == null || session.token.isEmpty || session.accountId.isEmpty) {
+      await _sessions.clear();
+      return false;
+    }
     _session = AuthSession(
       accountId: session.accountId,
       email: session.email ?? '',

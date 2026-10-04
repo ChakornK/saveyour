@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'domain/models.dart';
 import 'services/api_client.dart' as api;
 import 'services/auth.dart' as auth;
+import 'services/session_store.dart';
 import 'services/share_intent.dart';
 import 'theme/app_theme.dart';
 import 'widgets/post_card.dart';
@@ -33,8 +34,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final _repository = api.ApiClient();
-  final _auth = auth.GoogleAuthService();
+  late final auth.GoogleAuthService _auth;
+  late final api.ApiClient _repository;
   final _searchController = TextEditingController();
   final _shareIntents = ShareIntentService();
   StreamSubscription<String>? _shareSubscription;
@@ -44,6 +45,9 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    final sessions = SecureSessionStore();
+    _auth = auth.GoogleAuthService(sessions: sessions);
+    _repository = api.ApiClient(sessions: sessions);
     _restoreAuth();
     _shareIntents.start();
     _shareSubscription = _shareIntents.links.listen(_showSaveDialogForUrl);
