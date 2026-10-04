@@ -4,7 +4,7 @@ import { Tokenizer } from "@huggingface/tokenizers";
 
 export interface ImageTag { label: string; confidence: number }
 export interface ImageTagger { tagImage(input: { bytes: Uint8Array; mimeType: string }): Promise<ImageTag[]> }
-export interface ClipTaggerConfig { visionModelPath: string; textModelPath?: string; tokenizerPath?: string; labels: string[]; threshold?: number }
+export interface ClipTaggerConfig { visionModelPath: string; textModelPath?: string; tokenizerPath?: string; tokenizerConfigPath?: string; labels: string[]; threshold?: number }
 
 export class OnnxClipImageTagger implements ImageTagger {
   private vision?: Promise<ort.InferenceSession>;
@@ -12,7 +12,10 @@ export class OnnxClipImageTagger implements ImageTagger {
   private text?: Promise<ort.InferenceSession>;
   constructor(private readonly config: ClipTaggerConfig) {}
   private getVision() { return (this.vision ??= ort.InferenceSession.create(this.config.visionModelPath)); }
-  private getTokenizer() { return (this.tokenizer ??= Promise.reject(new Error("Tokenizer JSON requires a compatible tokenizer runtime"))); }
+  private async getTokenizer() {
+    if (!this.config.tokenizerPath || !this.config.tokenizerConfigPath) throw new Error("CLIP tokenizer assets are missing");
+    return new Tokenizer(await Bun.file(this.config.tokenizerPath).json(), await Bun.file(this.config.tokenizerConfigPath).json());
+  }
   private getText() { return (this.text ??= ort.InferenceSession.create(this.config.textModelPath!)); }
   async tagImage(input: { bytes: Uint8Array; mimeType: string }) {
     if (!input.mimeType.startsWith("image/") || !input.bytes.byteLength) return [];
