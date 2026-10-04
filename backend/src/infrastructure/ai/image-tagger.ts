@@ -70,12 +70,12 @@ export class OnnxClipImageTagger implements ImageTagger {
     const output = await this.withTimeout(session.run({ [inputName]: new ort.Tensor("float32", pixels, [1, 3, 224, 224]) }));
     const embedding = Array.from(output[outputName].data as Float32Array);
     const norm = Math.sqrt(embedding.reduce((sum, value) => sum + value * value, 0)) || 1;
-    const normalized = embedding.map((value) => value / norm);
+    const imageEmbedding = embedding.map((value) => value / norm);
     const inferenceMs = performance.now() - inferenceStarted;
     if (!this.config.textModelPath || !this.config.tokenizerPath || !this.config.tokenizerConfigPath) { this.emit({ payloadBytes, preprocessingMs, inferenceMs, modelVersion: this.config.modelVersion, outcome: "empty" }); return []; }
     const tags = await Promise.all(this.config.labels.map(async (label) => {
       const text = await this.textEmbedding(label);
-      const similarity = normalized.reduce((sum, value, index) => sum + value * (text[index] ?? 0), 0);
+      const similarity = imageEmbedding.reduce((sum, value, index) => sum + value * (text[index] ?? 0), 0);
       return { label, confidence: Math.max(0, Math.min(1, (similarity + 1) / 2)) };
     }));
     const results = tags.filter((tag) => tag.confidence >= (this.config.threshold ?? 0.5)).sort((a, b) => b.confidence - a.confidence).slice(0, 12);
@@ -85,8 +85,8 @@ export class OnnxClipImageTagger implements ImageTagger {
       const previous = unique.get(label);
       if (!previous || tag.confidence > previous.confidence) unique.set(label, { label, confidence: tag.confidence });
     }
-    const normalized = [...unique.values()].sort((a, b) => b.confidence - a.confidence);
-    this.emit({ payloadBytes, preprocessingMs, inferenceMs, modelVersion: this.config.modelVersion, outcome: normalized.length ? "success" : "empty" });
-    return normalized;
+    const normalizedTags = [...unique.values()].sort((a, b) => b.confidence - a.confidence);
+    this.emit({ payloadBytes, preprocessingMs, inferenceMs, modelVersion: this.config.modelVersion, outcome: normalizedTags.length ? "success" : "empty" });
+    return normalizedTags;
   }
 }
