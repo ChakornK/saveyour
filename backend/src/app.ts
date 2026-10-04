@@ -37,6 +37,7 @@ import { captureRoutes } from "./modules/capture/routes";
 import { captureApiRoutes } from "./modules/capture/api-routes";
 import { CaptureService } from "./modules/capture/service";
 import { InMemoryCaptureRepository } from "./modules/capture/repository";
+import { MongoCaptureRepository } from "./modules/capture/persistent-repository";
 import {
   AuthService,
   GoogleWebCryptoVerifier,
@@ -55,7 +56,8 @@ import { profileRoutes } from "./modules/profile/routes";
 
 export const createApp = (config: AppConfig) => {
   const useProduction = config.appEnv === "production";
-  const mongo = useProduction
+  const useDurableInfrastructure = Boolean(config.mongoUri && config.redisUrl);
+  const mongo = useDurableInfrastructure
     ? new MongoDatabase({
         uri: config.mongoUri,
         database: config.mongoDatabase,
@@ -83,7 +85,7 @@ export const createApp = (config: AppConfig) => {
     : new InMemorySearchIndex();
   const searchService = new SearchService(searchIndex);
   const redis =
-    useProduction && config.redisUrl
+    useDurableInfrastructure && config.redisUrl
       ? new RedisClientAdapter(config.redisUrl)
       : undefined;
   const initialize = async () => {
@@ -95,6 +97,9 @@ export const createApp = (config: AppConfig) => {
         new MongoDerivedPostStore(mongo).ensureIndexes(),
         new MongoPostSource(mongo).ensureIndexes(),
         new MongoOutbox(mongo).ensureIndexes(),
+        new MongoCaptureRepository(mongo).ensureIndexes(),
+        new MongoAccountRepository(mongo).ensureIndexes(),
+        new MongoSessionRepository(mongo).ensureIndexes(),
       ]);
     }
     await initializeSearchIndex(searchIndex, searchConfig);
@@ -147,13 +152,16 @@ export const createApp = (config: AppConfig) => {
     new QueuePublisher(queue),
   );
   const authService = new AuthService(
-    useProduction ? new MongoAccountRepository(mongo!) : new InMemoryAccountRepository(),
-    useProduction ? new MongoSessionRepository(mongo!) : new InMemorySessionRepository(),
+    useDurableInfrastructure ? new MongoAccountRepository(mongo!) : new InMemoryAccountRepository(),
+    useDurableInfrastructure ? new MongoSessionRepository(mongo!) : new InMemorySessionRepository(),
     new GoogleWebCryptoVerifier(
       "https://www.googleapis.com/oauth2/v3/certs",
     ),
   );
-  const captureService = new CaptureService(new InMemoryCaptureRepository());
+  const captureRepository = useDurableInfrastructure
+    ? new MongoCaptureRepository(mongo!)
+    : new InMemoryCaptureRepository();
+  const captureService = new CaptureService(captureRepository);
   const app = new Elysia({ name: "saveyour-tech-api" })
     .use(
       openapi({
