@@ -12,6 +12,8 @@ export interface AppConfig {
   seaweedfsEndpoint?: string;
   seaweedfsBucket?: string;
   googleClientId?: string;
+  authRequired: boolean;
+  authTokens: Record<string, string>;
   mongoUri: string;
   mongoDatabase: string;
   redisUrl: string;
@@ -35,6 +37,19 @@ const positiveInteger = (
     throw new Error(`${name} must be a positive integer`);
   return parsed;
 };
+
+const parseAuthTokens = (value: string | undefined): Record<string, string> =>
+  Object.fromEntries(
+    (value ?? "")
+      .split(",")
+      .map((pair) => pair.trim())
+      .filter(Boolean)
+      .map((pair) => {
+        const [token, ownerId] = pair.split(":", 2);
+        return [token, ownerId];
+      })
+      .filter(([token, ownerId]) => Boolean(token && ownerId)),
+  );
 
 const parseEnvironment = (value: string | undefined): AppEnvironment => {
   if (value === "production" || value === "test") return value;
@@ -81,6 +96,10 @@ export const loadConfig = (
       : {}),
     seaweedfsBucket: env.SEAWEEDFS_BUCKET ?? "saveyour-tech",
     ...(env.GOOGLE_CLIENT_ID ? { googleClientId: env.GOOGLE_CLIENT_ID } : {}),
+    authRequired:
+      env.AUTH_REQUIRED === "true" ||
+      parseEnvironment(env.APP_ENV) === "production",
+    authTokens: parseAuthTokens(env.AUTH_TOKENS),
     mongoUri: env.MONGO_URI ?? "mongodb://127.0.0.1:27017",
     mongoDatabase: env.MONGO_DATABASE ?? "saveyour-tech",
     redisUrl: env.REDIS_URL ?? "redis://127.0.0.1:6379",
