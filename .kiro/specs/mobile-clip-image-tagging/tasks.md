@@ -38,7 +38,7 @@ Implement and verify a native ONNX image-tagging provider, integrate it with the
   - Current artifact requires tokenizer inputs; semantic zero-shot labels remain blocked until a tokenizer-aware model bundle is provisioned.
   - _Requirements: 2.3, 3.3, 4.4_
 
-- [ ] 7. Add focused tests
+- [x] 7. Add focused tests
   - Test invalid input handling, output normalization, session reuse, and fallback behavior.
   - Add fixture assertions for cat, rabbit, board game, and reel images.
   - _Requirements: 3.4, 4.4, 5.2, 7.3_
@@ -50,7 +50,7 @@ Implement and verify a native ONNX image-tagging provider, integrate it with the
   - Verify no Gemini call is required for local tags and no MongoDB `_id` error occurs.
   - _Requirements: 6.1, 6.2, 6.3, 7.1, 7.2, 7.4
 
-- [ ] 9. Checkpoint and commit
+- [x] 9. Checkpoint and commit
   - Commit each stable implementation milestone.
   - Push the completed branch after all validation passes.
 
