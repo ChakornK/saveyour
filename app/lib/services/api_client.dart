@@ -122,7 +122,6 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
         .toList();
   }
 
-  @override
   Future<CaptureReceipt> capture(String url, {String? idempotencyKey}) async {
     final body = await _request(
       'POST',
@@ -138,6 +137,7 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
     return CaptureReceipt.fromJson(body);
   }
 
+  @override
   Future<void> saveLink(String url) async {
     await _request('POST', '/capture', body: {'url': url});
   }
@@ -167,23 +167,55 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
   }
 
   @override
-  Future<Album> createAlbum(String name) =>
-      throw const ApiException(null, 'Album endpoints are not available yet.');
+  Future<Album> createAlbum(String name) async {
+    final body = await _request('POST', '/albums', body: {'name': name});
+    return _albumFromJson(body as Map<String, dynamic>);
+  }
 
   @override
-  Future<void> addToAlbum(String postId, String albumId) =>
-      throw const ApiException(null, 'Album endpoints are not available yet.');
+  Future<void> addToAlbum(String postId, String albumId) async {
+    await _request(
+      'POST',
+      '/albums/${Uri.encodeComponent(albumId)}/posts/${Uri.encodeComponent(postId)}',
+    );
+  }
 
   @override
-  Future<List<Album>> listAlbums({
-    String query = '',
-    Set<String> tags = const {},
-  }) =>
-      throw const ApiException(null, 'Album endpoints are not available yet.');
+  Future<List<Album>> listAlbums({String query = '', Set<String> tags = const {}}) async {
+    final body = await _request('GET', '/albums', query: {
+      if (query.trim().isNotEmpty) 'q': query,
+      if (tags.isNotEmpty) 'tags': tags.join(','),
+    });
+    final items = body is List ? body : const <dynamic>[];
+    return items.map((item) => _albumFromJson((item as Map).cast<String, dynamic>())).toList();
+  }
 
   @override
-  Future<AlbumDetail> getAlbum(String albumId) =>
-      throw const ApiException(null, 'Album endpoints are not available yet.');
+  Future<AlbumDetail> getAlbum(String albumId) async {
+    final body = await _request('GET', '/albums/${Uri.encodeComponent(albumId)}');
+    final json = (body as Map).cast<String, dynamic>();
+    return AlbumDetail(
+      album: _albumFromJson((json['album'] as Map).cast<String, dynamic>()),
+      posts: (json['posts'] as List<dynamic>? ?? const [])
+          .map((item) => _postFromJson((item as Map).cast<String, dynamic>()))
+          .toList(),
+    );
+  }
+
+  Album _albumFromJson(Map<String, dynamic> json) => Album(
+    id: json['id'] as String? ?? '',
+    name: json['name'] as String? ?? 'Album',
+    coverPost: json['coverPost'] is Map
+        ? _postFromJson((json['coverPost'] as Map).cast<String, dynamic>())
+        : null,
+    postCount: (json['postCount'] as num?)?.toInt() ?? 0,
+    tags: (json['tags'] as List<dynamic>? ?? const []).cast<String>().toSet(),
+    updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
+    visibility: AlbumVisibility.values.firstWhere(
+      (value) => value.name == json['visibility'],
+      orElse: () => AlbumVisibility.private,
+    ),
+  );
 
   @override
   Future<UserProfile> getProfile() async {

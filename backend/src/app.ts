@@ -53,6 +53,10 @@ import {
 } from "./infrastructure/mongo/auth-repositories";
 import { initializeSearchIndex } from "./infrastructure/search/index-init";
 import { profileRoutes } from "./modules/profile/routes";
+import { albumRoutes } from "./modules/albums/routes";
+import { AlbumService } from "./modules/albums/service";
+import { InMemoryAlbumRepository } from "./modules/albums/repository";
+import { MongoAlbumRepository } from "./infrastructure/mongo/album-repository";
 
 export const createApp = (config: AppConfig) => {
   const useProduction = config.appEnv === "production";
@@ -100,6 +104,7 @@ export const createApp = (config: AppConfig) => {
         new MongoCaptureRepository(mongo).ensureIndexes(),
         new MongoAccountRepository(mongo).ensureIndexes(),
         new MongoSessionRepository(mongo).ensureIndexes(),
+        new MongoAlbumRepository(mongo).ensureIndexes(),
       ]);
     }
     await initializeSearchIndex(searchIndex, searchConfig);
@@ -168,6 +173,10 @@ export const createApp = (config: AppConfig) => {
     ? new MongoCaptureRepository(mongo!)
     : new InMemoryCaptureRepository();
   const captureService = new CaptureService(captureRepository);
+  const albumRepository = useDurableInfrastructure
+    ? new MongoAlbumRepository(mongo!)
+    : new InMemoryAlbumRepository();
+  const albumService = new AlbumService(albumRepository, captureRepository);
   const app = new Elysia({ name: "saveyour-tech-api" })
     .use(
       openapi({
@@ -225,6 +234,7 @@ export const createApp = (config: AppConfig) => {
     .use(createAuthRoutes(config, authService))
     .use(captureApiRoutes(captureService, authService))
     .use(profileRoutes(authService, captureService))
+    .use(albumRoutes(albumService, authService))
     .use(analysisRoutes(orchestrator, repository, metrics))
     .use(captureRoutes(source, orchestrator))
     .use(searchRoutes(searchService, new TagSuggestionService(derivedStore)))
