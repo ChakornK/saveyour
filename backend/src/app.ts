@@ -58,6 +58,7 @@ import { MongoAlbumRepository } from "./infrastructure/mongo/album-repository";
 import { MongoMediaAssetRepository } from "./modules/media/repository";
 import { SeaweedFsMediaStore } from "./infrastructure/media/seaweedfs-store";
 import { CaptureMediaWorkflow } from "./modules/capture/media-workflow";
+import { manualUploadRoutes } from "./modules/capture/manual-upload-routes";
 
 export const createApp = (config: AppConfig) => {
   const useProduction = config.appEnv === "production";
@@ -254,6 +255,7 @@ export const createApp = (config: AppConfig) => {
     .use(healthRoutes())
     .use(createAuthRoutes(config, authService))
     .use(captureApiRoutes(captureService, authService))
+    .use(manualUploadRoutes(captureRepository, mediaStore, authService))
     .use(profileRoutes(authService, captureService))
     .use(albumRoutes(albumService, authService))
     .use(analysisRoutes(orchestrator, repository, metrics))
