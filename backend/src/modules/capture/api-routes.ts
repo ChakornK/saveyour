@@ -2,23 +2,21 @@ import { Elysia, t } from "elysia";
 import { AuthError, AuthService } from "../auth/service";
 import { CaptureError } from "./types";
 import { CaptureService } from "./service";
+import { authContext } from "../auth/context";
 
-const scopeFromHeaders = (
-  auth: AuthService,
-  authorization: string | undefined,
-) => {
-  const token = authorization?.replace(/^Bearer\s+/i, "");
-  if (!token)
+const scopeFromContext = (authenticated: { ownerId: string } | undefined) => {
+  if (!authenticated)
     throw new AuthError("AUTH_REQUIRED", "Authentication is required");
-  return auth.authenticate(token);
+  return authenticated;
 };
 
 export const captureApiRoutes = (service: CaptureService, auth: AuthService) =>
   new Elysia({ name: "capture-api" })
+    .use(authContext(auth))
     .post(
       "/capture",
-      async ({ body, headers, set }) => {
-        const scope = await scopeFromHeaders(auth, headers.authorization);
+      async ({ body, headers, set, authenticated }) => {
+        const scope = scopeFromContext(authenticated);
         const result = await service.capture(
           {
             rawUrl: body.url,
@@ -41,9 +39,9 @@ export const captureApiRoutes = (service: CaptureService, auth: AuthService) =>
     )
     .get(
       "/captured-posts",
-      async ({ headers, query }) =>
+      async ({ query, authenticated }) =>
         service.list(
-          await scopeFromHeaders(auth, headers.authorization),
+          scopeFromContext(authenticated),
           query.cursor,
           query.limit ? Number(query.limit) : 20,
         ),
@@ -56,20 +54,14 @@ export const captureApiRoutes = (service: CaptureService, auth: AuthService) =>
     )
     .get(
       "/captured-posts/:postId",
-      async ({ headers, params }) =>
-        service.get(
-          await scopeFromHeaders(auth, headers.authorization),
-          params.postId,
-        ),
+      async ({ params, authenticated }) =>
+        service.get(scopeFromContext(authenticated), params.postId),
       { params: t.Object({ postId: t.String() }) },
     )
     .delete(
       "/captured-posts/:postId",
-      async ({ headers, params }) =>
-        service.delete(
-          await scopeFromHeaders(auth, headers.authorization),
-          params.postId,
-        ),
+      async ({ params, authenticated }) =>
+        service.delete(scopeFromContext(authenticated), params.postId),
       { params: t.Object({ postId: t.String() }) },
     )
     .onError(({ error, set }) => {

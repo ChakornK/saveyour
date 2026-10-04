@@ -1,5 +1,4 @@
-import { describe, expect, test, afterEach } from 'bun:test'
-import { SnowflakeCortexClient } from '../src/infrastructure/ai/cortex-client'
+import { describe, expect, test } from 'bun:test'
 import { FakeCortexClient, redactCortexDiagnostic, redactCortexValue } from '../src/infrastructure/ai/cortex-client'
 import { CortexAnalysisProvider } from '../src/infrastructure/ai/cortex-provider'
 import { CortexError } from '../src/infrastructure/ai/cortex-types'

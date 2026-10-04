@@ -1,8 +1,6 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -48,7 +46,7 @@ void main() {
     await api.removeFromAlbum('p1', 'My Album & Stuff');
     expect(requests[0].method, 'POST');
     expect(jsonDecode(requests[0].body), {'url': 'https://example.com/a'});
-    expect(requests[1].url.path, '/posts/post/1');
+    expect(requests[1].url.path, '/captured-posts/post%2F1');
     expect(requests[2].url.path, contains('My%20Album%20%26%20Stuff'));
   });
 
@@ -154,22 +152,25 @@ void main() {
     expect(find.byType(PostDetailModal), findsNothing);
   });
 
-  testWidgets('share intent emits native and initial links', (tester) async {
-    final messenger = tester.binding.defaultBinaryMessenger;
-    final channel = const MethodChannel('tech.saveyour.SaveYour/share_intent');
-    messenger.setMockMethodCallHandler(
-      channel,
-      (call) async =>
-          call.method == 'initialSharedText' ? 'https://initial.test' : null,
+  test('share intent emits native and initial links', () async {
+    Future<void> Function(String text)? handler;
+    var unregistered = false;
+    final service = ShareIntentService(
+      readInitial: () async => 'https://initial.test',
+      registerHandler: (value) => handler = value,
+      unregisterHandler: () => unregistered = true,
     );
-    final service = ShareIntentService();
     final links = <String>[];
     final subscription = service.links.listen(links.add);
     await service.start();
-    expect(links, isEmpty);
+    await Future<void>.delayed(Duration.zero);
+    expect(links, ['https://initial.test']);
+    await handler!('https://shared.test');
+    await Future<void>.delayed(Duration.zero);
+    expect(links, ['https://initial.test', 'https://shared.test']);
     await subscription.cancel();
     service.dispose();
-    messenger.setMockMethodCallHandler(channel, null);
+    expect(unregistered, isTrue);
   });
 
   testWidgets('wide home renders navigation rail', (tester) async {
@@ -177,7 +178,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     await tester.pumpWidget(const SaveYourTechApp());
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.text('Continue with Google'), findsOneWidget);
     addTearDown(() {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();

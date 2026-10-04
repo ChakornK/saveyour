@@ -90,8 +90,7 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.byType(NavigationBar), findsOneWidget);
-    expect(find.text('Albums'), findsOneWidget);
+    expect(find.byType(AlbumDetailPage), findsOneWidget);
   });
 
   testWidgets('profile logout invokes repository', (tester) async {

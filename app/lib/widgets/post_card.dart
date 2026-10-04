@@ -12,7 +12,8 @@ class PostCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
-    label: '${post.title}, ${post.platform.name}, ${post.mediaKind.name}',
+    label:
+        '${post.title}, ${post.platform.name}, ${post.mediaKind.name}, ${post.analysisStatus ?? 'status unavailable'}',
     child: BrutalSurface(
       padding: const EdgeInsets.all(12),
       child: InkWell(
@@ -43,6 +44,19 @@ class PostCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12),
             ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                _StatusChip(label: post.analysisStatus ?? 'Saved'),
+                if (post.albums.isNotEmpty)
+                  _StatusChip(
+                    label:
+                        '${post.albums.length} album${post.albums.length == 1 ? '' : 's'}',
+                  ),
+              ],
+            ),
           ],
         ),
       ),
@@ -50,7 +64,7 @@ class PostCard extends StatelessWidget {
   );
 
   Widget _media() {
-    if (post.mediaKind == MediaKind.text)
+    if (post.mediaKind == MediaKind.text) {
       return Padding(
         padding: const EdgeInsets.all(6),
         child: Align(
@@ -63,18 +77,20 @@ class PostCard extends StatelessWidget {
           ),
         ),
       );
-    if (post.thumbnailUrl == null)
+    }
+    if (post.thumbnailUrl == null) {
       return Container(
         color: Color(post.color),
         child: const Center(child: Icon(Icons.image_outlined, size: 46)),
       );
+    }
     return Stack(
       fit: StackFit.expand,
       children: [
         Image.network(
           post.thumbnailUrl!,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
+          errorBuilder: (_, _, _) => Container(
             color: Color(post.color),
             child: const Icon(Icons.image_not_supported_outlined, size: 46),
           ),
@@ -102,4 +118,26 @@ class PostCard extends StatelessWidget {
       ],
     );
   }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    constraints: const BoxConstraints(minHeight: 24),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: AppColors.background,
+      border: Border.all(color: AppColors.ink),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Text(
+      label.toUpperCase(),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900),
+    ),
+  );
 }

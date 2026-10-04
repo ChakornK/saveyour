@@ -1,20 +1,40 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 
-const apiBaseUrl = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: 'http://10.0.2.2:3000',
-);
+import 'session_store.dart';
+
+// Flutter reads these values from --dart-define or --dart-define-from-file.
+const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
+const googleServerClientId = String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
+
+String requiredAppConfig(String name, String value) {
+  if (value.isEmpty) {
+    throw StateError(
+      '$name is not configured. Pass it with --dart-define=$name=...',
+    );
+  }
+  return value;
+}
 
 class AuthSession {
-  const AuthSession({required this.accountId, required this.email, required this.token});
+  const AuthSession({
+    required this.accountId,
+    required this.email,
+    required this.token,
+    this.name,
+    this.picture,
+  });
 
   final String accountId;
   final String email;
   final String token;
+  final String? name;
+  final String? picture;
 
   factory AuthSession.fromJson(Map<String, dynamic> json) {
     final account = json['account'];
@@ -23,22 +43,32 @@ class AuthSession {
     final email = accountMap?['email'];
     final token = json['token'];
     if (accountId is! String || email is! String || token is! String) {
-      throw const AuthException('Backend returned an incomplete sign-in response.');
+      throw const AuthException(
+        'Backend returned an incomplete sign-in response.',
+      );
     }
-    return AuthSession(accountId: accountId, email: email, token: token);
+    return AuthSession(
+      accountId: accountId,
+      email: email,
+      token: token,
+      name: accountMap?['name'] as String?,
+      picture: accountMap?['picture'] as String?,
+    );
   }
 }
 
 class GoogleAuthService {
   GoogleAuthService({
     this.baseUrl = apiBaseUrl,
-    this.serverClientId = '414871424622-6qao1i3h52737um7pi73riha5d9ra8gc.apps.googleusercontent.com',
+    this.serverClientId = googleServerClientId,
     http.Client? client,
     FlutterSecureStorage? storage,
     GoogleSignIn? googleSignIn,
-  })  : _client = client ?? http.Client(),
-        _storage = storage ?? const FlutterSecureStorage(),
-        _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
+    SessionStore? sessions,
+  }) : _client = client ?? http.Client(),
+       _storage = storage ?? const FlutterSecureStorage(),
+       _googleSignIn = googleSignIn ?? GoogleSignIn.instance,
+       _sessions = sessions ?? SecureSessionStore();
 
   static const _sessionKey = 'backend_session_token';
   static const _accountIdKey = 'backend_account_id';
@@ -49,49 +79,107 @@ class GoogleAuthService {
   final http.Client _client;
   final FlutterSecureStorage _storage;
   final GoogleSignIn _googleSignIn;
+  final SessionStore _sessions;
   AuthSession? _session;
+  bool _initialized = false;
 
   AuthSession? get session => _session;
   bool get isSignedIn => _session != null;
   String? get email => _session?.email;
 
   Future<bool> restoreSession() async {
-    final token = await _storage.read(key: _sessionKey);
-    final accountId = await _storage.read(key: _accountIdKey);
-    final email = await _storage.read(key: _emailKey);
-    if (token == null || accountId == null || email == null) return false;
-    _session = AuthSession(accountId: accountId, email: email, token: token);
+    final session = await _sessions.read();
+    if (session == null || session.token.isEmpty || session.accountId.isEmpty) {
+      await _sessions.clear();
+      return false;
+    }
+    _session = AuthSession(
+      accountId: session.accountId,
+      email: session.email ?? '',
+      token: session.token,
+    );
     return true;
   }
 
   Future<AuthSession> signIn() async {
-    await _googleSignIn.initialize(serverClientId: serverClientId);
-    final googleAccount = await _googleSignIn.authenticate();
-    final googleAuth = googleAccount.authentication;
-    final idToken = googleAuth.idToken;
-    if (idToken == null || idToken.isEmpty) {
+    if (baseUrl.isEmpty) {
       throw const AuthException(
-        'Google did not return an ID token. Check that the Web OAuth client ID is configured as serverClientId.',
+        'The API URL is not configured. Launch the app with --dart-define=API_BASE_URL=http://localhost:3000.',
       );
     }
+    if (serverClientId.isEmpty) {
+      throw const AuthException(
+        'Google sign-in is not configured. Launch the app with --dart-define=GOOGLE_SERVER_CLIENT_ID=<web-client-id>.',
+      );
+    }
+    try {
+      if (kIsWeb) {
+        throw const AuthException(
+          'Use the Google sign-in button to continue on web.',
+        );
+      }
+      if (!_initialized) {
+        await _googleSignIn.initialize(serverClientId: serverClientId);
+        _initialized = true;
+      }
+      final googleAccount = await _googleSignIn.authenticate();
+      final googleAuth = googleAccount.authentication;
+      final idToken = googleAuth.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        throw const AuthException(
+          'Google did not return an ID token. Check that the Web OAuth client ID is configured as serverClientId.',
+        );
+      }
 
+      return await _completeSignIn(idToken);
+    } on AuthException {
+      rethrow;
+    } catch (error) {
+      throw AuthException('Google sign-in failed: $error');
+    }
+  }
+
+  Future<AuthSession> signInWithIdToken(String idToken) async {
+    if (baseUrl.isEmpty) {
+      throw const AuthException(
+        'The API URL is not configured. Launch the app with --dart-define=API_BASE_URL=http://localhost:3000.',
+      );
+    }
+    if (idToken.isEmpty) {
+      throw const AuthException('Google returned an empty ID token.');
+    }
+    return _completeSignIn(idToken);
+  }
+
+  Future<AuthSession> _completeSignIn(String idToken) async {
     final response = await _client.post(
-      Uri.parse('$baseUrl/auth/google'),
+      _url('/auth/google'),
       headers: {'content-type': 'application/json'},
       body: jsonEncode({'idToken': idToken}),
     );
     if (response.statusCode >= 400) {
-      throw AuthException(_message(response.body, 'Google sign-in failed.'));
+      throw AuthException(
+        _message(
+          response.body,
+          'Google sign-in failed (${response.statusCode}).',
+        ),
+      );
     }
 
     final decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic>) {
-      throw const AuthException('Backend returned an invalid sign-in response.');
+      throw const AuthException(
+        'Backend returned an invalid sign-in response.',
+      );
     }
     final session = AuthSession.fromJson(decoded);
-    await _storage.write(key: _sessionKey, value: session.token);
-    await _storage.write(key: _accountIdKey, value: session.accountId);
-    await _storage.write(key: _emailKey, value: session.email);
+    await _sessions.write(
+      Session(
+        token: session.token,
+        accountId: session.accountId,
+        email: session.email,
+      ),
+    );
     _session = session;
     return session;
   }
@@ -100,20 +188,26 @@ class GoogleAuthService {
     final token = _session?.token;
     if (token != null) {
       await _client.post(
-        Uri.parse('$baseUrl/auth/sign-out'),
+        _url('/auth/sign-out'),
         headers: {'authorization': 'Bearer $token'},
       );
     }
     await _googleSignIn.signOut();
-    await _storage.delete(key: _sessionKey);
-    await _storage.delete(key: _accountIdKey);
-    await _storage.delete(key: _emailKey);
+    await _sessions.clear();
     _session = null;
+  }
+
+  Uri _url(String path) {
+    final base = baseUrl.endsWith('/')
+        ? baseUrl.substring(0, baseUrl.length - 1)
+        : baseUrl;
+    return Uri.parse('$base$path');
   }
 
   String _message(String body, String fallback) {
     try {
-      return (jsonDecode(body) as Map<String, dynamic>)['message'] as String? ?? fallback;
+      return (jsonDecode(body) as Map<String, dynamic>)['message'] as String? ??
+          fallback;
     } catch (_) {
       return fallback;
     }

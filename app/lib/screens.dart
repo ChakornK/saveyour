@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'domain/models.dart';
@@ -21,16 +23,90 @@ class AlbumsPage extends StatefulWidget {
 
 class _AlbumsPageState extends State<AlbumsPage> {
   final search = TextEditingController();
+  Timer? _searchDebounce;
   List<Album> albums = [];
+  bool loading = true;
+  String? error;
   @override
   void initState() {
     super.initState();
     _load();
   }
 
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    search.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
-    final result = await widget.repository.listAlbums(query: search.text);
-    if (mounted) setState(() => albums = result);
+    if (mounted)
+      setState(() {
+        loading = true;
+        error = null;
+      });
+    try {
+      final result = await widget.repository.listAlbums(query: search.text);
+      if (mounted) setState(() => albums = result);
+    } catch (e) {
+      if (mounted) setState(() => error = '$e');
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  Future<void> _createAlbum(BuildContext context) async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: BrutalSurface(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'CREATE ALBUM',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Album name'),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('CANCEL'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context, controller.text),
+                    child: const Text('CREATE'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    controller.dispose();
+    if (name == null || name.trim().isEmpty) return;
+    try {
+      await widget.repository.createAlbum(name.trim());
+      await _load();
+    } catch (error) {
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$error')));
+    }
   }
 
   @override
@@ -45,39 +121,74 @@ class _AlbumsPageState extends State<AlbumsPage> {
       const SizedBox(height: 12),
       TextField(
         controller: search,
-        onChanged: (_) => _load(),
+        onChanged: (_) {
+          _searchDebounce?.cancel();
+          _searchDebounce = Timer(const Duration(milliseconds: 350), _load);
+        },
         decoration: const InputDecoration(
           prefixIcon: Icon(Icons.search),
           hintText: 'Search albums and tags',
         ),
       ),
       const SizedBox(height: 16),
-      GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 280,
-          mainAxisExtent: 220,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-        ),
-        itemCount: albums.length,
-        itemBuilder: (_, i) => _AlbumTile(
-          album: albums[i],
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                fullscreenDialog: false,
-                builder: (_) => AlbumDetailPage(
-                  albumId: albums[i].id,
-                  repository: widget.repository,
-                  onOpenPost: widget.onOpenPost,
-                ),
-              ),
-            );
-          },
+      Align(
+        alignment: Alignment.centerLeft,
+        child: BrutalistButton(
+          label: 'Create album',
+          icon: const Icon(Icons.create_new_folder_outlined),
+          variant: BrutalistButtonVariant.primary,
+          onPressed: () => _createAlbum(context),
         ),
       ),
+      const SizedBox(height: 20),
+      if (loading && albums.isEmpty)
+        const Padding(
+          padding: EdgeInsets.all(32),
+          child: Center(child: CircularProgressIndicator()),
+        )
+      else if (error != null && albums.isEmpty)
+        BrutalSurface(
+          child: Column(
+            children: [
+              const Icon(Icons.cloud_off_outlined, size: 40),
+              const SizedBox(height: 8),
+              Text(error!, textAlign: TextAlign.center),
+              const SizedBox(height: 12),
+              FilledButton(onPressed: _load, child: const Text('Retry')),
+            ],
+          ),
+        )
+      else if (!loading && albums.isEmpty)
+        const BrutalSurface(
+          child: Text('No albums yet. Create one from a saved post.'),
+        )
+      else
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 280,
+            mainAxisExtent: 220,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: albums.length,
+          itemBuilder: (_, i) => _AlbumTile(
+            album: albums[i],
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  fullscreenDialog: false,
+                  builder: (_) => AlbumDetailPage(
+                    albumId: albums[i].id,
+                    repository: widget.repository,
+                    onOpenPost: widget.onOpenPost,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
     ],
   );
 }
@@ -144,18 +255,109 @@ class AlbumDetailPage extends StatefulWidget {
 
 class _AlbumDetailPageState extends State<AlbumDetailPage> {
   AlbumDetail? detail;
+  String? error;
+  bool loading = true;
   final search = TextEditingController();
   @override
   void initState() {
     super.initState();
-    widget.repository.getAlbum(widget.albumId).then((v) {
-      if (mounted) setState(() => detail = v);
-    });
+    _loadDetail();
+  }
+
+  Future<void> _loadDetail() async {
+    if (mounted)
+      setState(() {
+        loading = true;
+        error = null;
+      });
+    try {
+      final value = await widget.repository.getAlbum(widget.albumId);
+      if (mounted) setState(() => detail = value);
+    } catch (e) {
+      if (mounted) setState(() => error = '$e');
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  Future<void> _renameAlbum() async {
+    final d = detail;
+    if (d == null) return;
+    final controller = TextEditingController(text: d.album.name);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: BrutalSurface(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'RENAME ALBUM',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Album name'),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('CANCEL'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context, controller.text),
+                    child: const Text('SAVE'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    controller.dispose();
+    if (name == null || name.trim().isEmpty) return;
+    try {
+      final renamed = await widget.repository.renameAlbum(
+        widget.albumId,
+        name.trim(),
+      );
+      if (mounted && detail != null)
+        setState(
+          () => detail = AlbumDetail(album: renamed, posts: detail!.posts),
+        );
+    } catch (e) {
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final d = detail;
+    if (d == null && error != null) {
+      return Center(
+        child: BrutalSurface(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(error!),
+              const SizedBox(height: 12),
+              FilledButton(onPressed: _loadDetail, child: const Text('RETRY')),
+            ],
+          ),
+        ),
+      );
+    }
     if (d == null) return const Center(child: CircularProgressIndicator());
     final posts = d.posts
         .where(
@@ -174,6 +376,13 @@ class _AlbumDetailPageState extends State<AlbumDetailPage> {
                   d.album.name,
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
+                actions: [
+                  IconButton(
+                    tooltip: 'Rename album',
+                    onPressed: _renameAlbum,
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
+                ],
               ),
               body: Column(
                 children: [
@@ -216,31 +425,20 @@ class _AlbumDetailPageState extends State<AlbumDetailPage> {
           ),
         ],
       ),
-      bottomNavigationBar: _NestedNavigationBar(),
     );
   }
 }
 
-class _NestedNavigationBar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => NavigationBar(
-    selectedIndex: 1,
-    onDestinationSelected: (index) {
-      Navigator.of(context).popUntil((route) => route.isFirst);
-      if (index != 1) DefaultTabController.of(context).animateTo(index);
-    },
-    destinations: const [
-      NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
-      NavigationDestination(icon: Icon(Icons.grid_view), label: 'Albums'),
-      NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile'),
-    ],
-  );
-}
-
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key, required this.repository, this.auth});
+  const ProfilePage({
+    super.key,
+    required this.repository,
+    this.auth,
+    this.onLoggedOut,
+  });
   final ProfileRepository repository;
   final GoogleAuthService? auth;
+  final VoidCallback? onLoggedOut;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -248,13 +446,53 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   bool _signingIn = false;
+  late Future<UserProfile> _profileFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileFuture = _loadProfile();
+  }
+
+  Future<UserProfile> _loadProfile() =>
+      widget.repository.getProfile().timeout(const Duration(seconds: 15));
+
+  Future<void> _logOut() async {
+    if (widget.auth != null) {
+      await widget.auth!.signOut();
+    } else {
+      await widget.repository.logOut();
+    }
+    if (widget.onLoggedOut != null) {
+      widget.onLoggedOut!();
+    } else if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) => FutureBuilder<UserProfile>(
-    future: widget.repository.getProfile(),
+    future: _profileFuture,
     builder: (context, snapshot) {
-      if (!snapshot.hasData)
+      if (snapshot.hasError) {
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Unable to load profile: ${snapshot.error}'),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () =>
+                    setState(() => _profileFuture = _loadProfile()),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        );
+      }
+      if (!snapshot.hasData) {
         return const Center(child: CircularProgressIndicator());
+      }
       final p = snapshot.data!;
       return ListView(
         padding: const EdgeInsets.all(24),
@@ -269,7 +507,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 boxShadow: const [
                   BoxShadow(color: AppColors.ink, offset: Offset(6, 6)),
                 ],
-                image: p.avatarUrl == null
+                image: p.avatarUrl == null || p.avatarUrl!.isEmpty
                     ? null
                     : DecorationImage(
                         image: NetworkImage(p.avatarUrl!),
@@ -300,7 +538,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 32),
           BrutalSurface(
-            child: widget.auth?.isSignedIn == true
+            child: widget.auth?.isSignedIn == true || widget.auth == null
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -313,10 +551,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         label: 'Log out',
                         icon: const Icon(Icons.logout),
                         variant: BrutalistButtonVariant.destructive,
-                        onPressed: () async {
-                          await widget.auth?.signOut();
-                          if (mounted) setState(() {});
-                        },
+                        onPressed: _logOut,
                       ),
                     ],
                   )
@@ -343,9 +578,9 @@ class _ProfilePageState extends State<ProfilePage> {
                               if (mounted) setState(() {});
                             } catch (error) {
                               if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('$error')),
-                              );
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(SnackBar(content: Text('$error')));
                             } finally {
                               if (mounted) setState(() => _signingIn = false);
                             }
