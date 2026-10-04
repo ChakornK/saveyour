@@ -1,4 +1,4 @@
-export type Platform = "instagram" | "reddit" | "tiktok" | "facebook" | "x";
+export type Platform = "instagram" | "tiktok" | "facebook" | "pinterest";
 export type SourceStatus = "pending" | "limited" | "resolved";
 export type AnalysisStatus = "pending" | "queued";
 export type DeletionState = "active" | "deleted";

@@ -2,10 +2,9 @@ import { CaptureError, type CanonicalPostUrl, type Platform } from "./types";
 
 const PROVIDER_HOSTS: Record<Platform, Set<string>> = {
   instagram: new Set(["instagram.com", "www.instagram.com"]),
-  reddit: new Set(["reddit.com", "www.reddit.com", "old.reddit.com"]),
   tiktok: new Set(["tiktok.com", "www.tiktok.com"]),
   facebook: new Set(["facebook.com", "www.facebook.com", "m.facebook.com"]),
-  x: new Set(["x.com", "www.x.com", "twitter.com", "www.twitter.com"]),
+  pinterest: new Set(["pinterest.com", "www.pinterest.com"]),
 };
 
 const TRACKING_PARAMETERS = new Set([
@@ -22,10 +21,9 @@ const TRACKING_PARAMETERS = new Set([
 
 const canonicalHostForPlatform: Record<Platform, string> = {
   instagram: "www.instagram.com",
-  reddit: "www.reddit.com",
   tiktok: "www.tiktok.com",
   facebook: "www.facebook.com",
-  x: "x.com",
+  pinterest: "www.pinterest.com",
 };
 
 const platformForHost = (hostname: string): Platform | undefined => {
@@ -64,17 +62,13 @@ const hasPostPath = (platform: Platform, pathname: string): boolean => {
       ["p", "reel", "reels", "tv"].includes(segments[0] ?? "") &&
       Boolean(segments[1])
     );
-  if (platform === "reddit")
-    return (
-      segments.includes("comments") &&
-      Boolean(segments[segments.indexOf("comments") + 1])
-    );
   if (platform === "tiktok")
     return (
       segments[0] === "@" ||
       (segments[0]?.startsWith("@") === true && segments.length >= 3)
     );
   if (platform === "facebook") return segments.length >= 2;
+  if (platform === "pinterest") return segments.length >= 2;
   return segments.length >= 1;
 };
 
