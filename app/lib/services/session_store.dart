@@ -18,7 +18,7 @@ abstract interface class SessionStore {
 
 class SecureSessionStore implements SessionStore {
   SecureSessionStore({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   static const _key = 'saveyour.session';
   final FlutterSecureStorage _storage;
@@ -48,13 +48,13 @@ class SecureSessionStore implements SessionStore {
 
   @override
   Future<void> write(Session session) => _storage.write(
-        key: _key,
-        value: jsonEncode({
-          'token': session.token,
-          'accountId': session.accountId,
-          if (session.email != null) 'email': session.email,
-        }),
-      );
+    key: _key,
+    value: jsonEncode({
+      'token': session.token,
+      'accountId': session.accountId,
+      if (session.email != null) 'email': session.email,
+    }),
+  );
 
   @override
   Future<void> clear() => _storage.delete(key: _key);

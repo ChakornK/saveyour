@@ -12,7 +12,8 @@ class PostCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
-    label: '${post.title}, ${post.platform.name}, ${post.mediaKind.name}, ${post.analysisStatus ?? 'status unavailable'}',
+    label:
+        '${post.title}, ${post.platform.name}, ${post.mediaKind.name}, ${post.analysisStatus ?? 'status unavailable'}',
     child: BrutalSurface(
       padding: const EdgeInsets.all(12),
       child: InkWell(
@@ -50,7 +51,10 @@ class PostCard extends StatelessWidget {
               children: [
                 _StatusChip(label: post.analysisStatus ?? 'Saved'),
                 if (post.albums.isNotEmpty)
-                  _StatusChip(label: '${post.albums.length} album${post.albums.length == 1 ? '' : 's'}'),
+                  _StatusChip(
+                    label:
+                        '${post.albums.length} album${post.albums.length == 1 ? '' : 's'}',
+                  ),
               ],
             ),
           ],

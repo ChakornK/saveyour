@@ -12,9 +12,9 @@ class ShareIntentService {
     InitialSharedTextReader? readInitial,
     SharedTextHandlerRegistrar? registerHandler,
     VoidCallback? unregisterHandler,
-  })  : _readInitial = readInitial ?? _readInitialFromChannel,
-        _registerHandler = registerHandler ?? _registerChannelHandler,
-        _unregisterHandler = unregisterHandler ?? _unregisterChannelHandler;
+  }) : _readInitial = readInitial ?? _readInitialFromChannel,
+       _registerHandler = registerHandler ?? _registerChannelHandler,
+       _unregisterHandler = unregisterHandler ?? _unregisterChannelHandler;
 
   static const _channel = MethodChannel('tech.saveyour.SaveYour/share_intent');
   final InitialSharedTextReader _readInitial;

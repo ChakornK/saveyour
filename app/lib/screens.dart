@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'domain/models.dart';
@@ -21,6 +23,7 @@ class AlbumsPage extends StatefulWidget {
 
 class _AlbumsPageState extends State<AlbumsPage> {
   final search = TextEditingController();
+  Timer? _searchDebounce;
   List<Album> albums = [];
   bool loading = true;
   String? error;
@@ -30,8 +33,19 @@ class _AlbumsPageState extends State<AlbumsPage> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    search.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
-    if (mounted) setState(() { loading = true; error = null; });
+    if (mounted)
+      setState(() {
+        loading = true;
+        error = null;
+      });
     try {
       final result = await widget.repository.listAlbums(query: search.text);
       if (mounted) setState(() => albums = result);
@@ -54,7 +68,10 @@ class _AlbumsPageState extends State<AlbumsPage> {
       const SizedBox(height: 12),
       TextField(
         controller: search,
-        onChanged: (_) => _load(),
+        onChanged: (_) {
+          _searchDebounce?.cancel();
+          _searchDebounce = Timer(const Duration(milliseconds: 350), _load);
+        },
         decoration: const InputDecoration(
           prefixIcon: Icon(Icons.search),
           hintText: 'Search albums and tags',
@@ -83,32 +100,32 @@ class _AlbumsPageState extends State<AlbumsPage> {
           child: Text('No albums yet. Create one from a saved post.'),
         )
       else
-      GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 280,
-          mainAxisExtent: 220,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-        ),
-        itemCount: albums.length,
-        itemBuilder: (_, i) => _AlbumTile(
-          album: albums[i],
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                fullscreenDialog: false,
-                builder: (_) => AlbumDetailPage(
-                  albumId: albums[i].id,
-                  repository: widget.repository,
-                  onOpenPost: widget.onOpenPost,
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 280,
+            mainAxisExtent: 220,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: albums.length,
+          itemBuilder: (_, i) => _AlbumTile(
+            album: albums[i],
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  fullscreenDialog: false,
+                  builder: (_) => AlbumDetailPage(
+                    albumId: albums[i].id,
+                    repository: widget.repository,
+                    onOpenPost: widget.onOpenPost,
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
-      ),
     ],
   );
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 
 import '../domain/models.dart';
@@ -54,15 +55,21 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
     late http.Response response;
     switch (method) {
       case 'GET':
-        response = await _client.get(uri, headers: headers).timeout(_requestTimeout);
+        response = await _client
+            .get(uri, headers: headers)
+            .timeout(_requestTimeout);
       case 'POST':
-        response = await _client.post(
-          uri,
-          headers: headers,
-          body: body == null ? null : jsonEncode(body),
-        ).timeout(_requestTimeout);
+        response = await _client
+            .post(
+              uri,
+              headers: headers,
+              body: body == null ? null : jsonEncode(body),
+            )
+            .timeout(_requestTimeout);
       case 'DELETE':
-        response = await _client.delete(uri, headers: headers).timeout(_requestTimeout);
+        response = await _client
+            .delete(uri, headers: headers)
+            .timeout(_requestTimeout);
       default:
         throw StateError('Unsupported HTTP method $method');
     }
@@ -138,7 +145,11 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
 
   @override
   Future<void> saveLink(String url) async {
-    await _request('POST', '/capture', body: {'url': url});
+    final body = await _request('POST', '/capture', body: {'url': url});
+    if (body == null) return;
+    if (body is! Map<String, dynamic>) {
+      throw const ApiException(null, 'The server returned an invalid capture.');
+    }
   }
 
   Future<SavedPost> getPost(String id) async {
@@ -180,15 +191,23 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
   }
 
   @override
-  Future<List<Album>> listAlbums({String query = '', Set<String> tags = const {}}) async {
-    final body = await _request('GET', '/albums', query: {
-      if (query.trim().isNotEmpty) 'q': query,
-      if (tags.isNotEmpty) 'tags': tags.join(','),
-    });
+  Future<List<Album>> listAlbums({
+    String query = '',
+    Set<String> tags = const {},
+  }) async {
+    final body = await _request(
+      'GET',
+      '/albums',
+      query: {
+        if (query.trim().isNotEmpty) 'q': query,
+        if (tags.isNotEmpty) 'tags': tags.join(','),
+      },
+    );
     final items = body is List
         ? body
         : body is Map<String, dynamic>
-        ? (body['items'] ?? body['albums'] ?? const <dynamic>[]) as List<dynamic>
+        ? (body['items'] ?? body['albums'] ?? const <dynamic>[])
+              as List<dynamic>
         : const <dynamic>[];
     return items
         .map((item) => _albumFromJson((item as Map).cast<String, dynamic>()))
@@ -197,7 +216,10 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
 
   @override
   Future<AlbumDetail> getAlbum(String albumId) async {
-    final body = await _request('GET', '/albums/${Uri.encodeComponent(albumId)}');
+    final body = await _request(
+      'GET',
+      '/albums/${Uri.encodeComponent(albumId)}',
+    );
     final json = (body as Map).cast<String, dynamic>();
     return AlbumDetail(
       album: _albumFromJson((json['album'] as Map).cast<String, dynamic>()),
@@ -215,7 +237,8 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
         : null,
     postCount: (json['postCount'] as num?)?.toInt() ?? 0,
     tags: (json['tags'] as List<dynamic>? ?? const []).cast<String>().toSet(),
-    updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
+    updatedAt:
+        DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
     visibility: AlbumVisibility.values.firstWhere(
       (value) => value.name == json['visibility'],
       orElse: () => AlbumVisibility.private,

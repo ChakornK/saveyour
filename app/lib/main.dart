@@ -37,6 +37,7 @@ class _HomePageState extends State<HomePage> {
   late final auth.GoogleAuthService _auth;
   late final api.ApiClient _repository;
   final _searchController = TextEditingController();
+  Timer? _searchDebounce;
   final _shareIntents = ShareIntentService();
   StreamSubscription<String>? _shareSubscription;
   LoadState<List<SavedPost>> _state = const LoadState(LoadStatus.initial);
@@ -57,6 +58,7 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _shareSubscription?.cancel();
     _shareIntents.dispose();
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -203,7 +205,13 @@ class _HomePageState extends State<HomePage> {
           sliver: SliverToBoxAdapter(
             child: TextField(
               controller: _searchController,
-              onChanged: (_) => _load(),
+              onChanged: (_) {
+                _searchDebounce?.cancel();
+                _searchDebounce = Timer(
+                  const Duration(milliseconds: 350),
+                  _load,
+                );
+              },
               onSubmitted: (_) => _load(),
               textInputAction: TextInputAction.search,
               decoration: const InputDecoration(
