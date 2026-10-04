@@ -161,44 +161,51 @@ class _AlbumDetailPageState extends State<AlbumDetailPage> {
               .contains(search.text.toLowerCase()),
         )
         .toList();
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          d.album.name,
-          style: const TextStyle(fontWeight: FontWeight.w900),
+    return Column(
+      children: [
+        Expanded(
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(
+                d.album.name,
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+            body: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: TextField(
+                    controller: search,
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.search),
+                      hintText: 'Search this album',
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 300,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: .78,
+                        ),
+                    itemCount: posts.length,
+                    itemBuilder: (_, i) => PostCard(
+                      post: posts[i],
+                      onTap: () => widget.onOpenPost(posts[i]),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: search,
-              onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: 'Search this album',
-              ),
-            ),
-          ),
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 300,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio: .78,
-              ),
-              itemCount: posts.length,
-              itemBuilder: (_, i) => PostCard(
-                post: posts[i],
-                onTap: () => widget.onOpenPost(posts[i]),
-              ),
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 }
