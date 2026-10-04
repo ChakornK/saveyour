@@ -24,6 +24,7 @@ class AuthSession {
 class GoogleAuthService {
   GoogleAuthService({
     this.baseUrl = 'http://10.0.2.2:3000',
+    this.serverClientId = '414871424622-5fn2bcqqsut5jfr5j6kk3tdtf206j0me.apps.googleusercontent.com',
     http.Client? client,
     FlutterSecureStorage? storage,
     GoogleSignIn? googleSignIn,
@@ -36,6 +37,7 @@ class GoogleAuthService {
   static const _emailKey = 'backend_account_email';
 
   final String baseUrl;
+  final String serverClientId;
   final http.Client _client;
   final FlutterSecureStorage _storage;
   final GoogleSignIn _googleSignIn;
@@ -55,7 +57,7 @@ class GoogleAuthService {
   }
 
   Future<AuthSession> signIn() async {
-    await _googleSignIn.initialize();
+    await _googleSignIn.initialize(serverClientId: serverClientId);
     final googleAccount = await _googleSignIn.authenticate();
     final googleAuth = googleAccount.authentication;
     final idToken = googleAuth.idToken;
