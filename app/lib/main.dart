@@ -165,26 +165,10 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: wide
           ? null
           : SafeArea(
-              child: NavigationBar(
-                selectedIndex: _tab,
-                onDestinationSelected: (value) => setState(() => _tab = value),
-                destinations: const [
-                  NavigationDestination(
-                    icon: Icon(Icons.home_outlined),
-                    selectedIcon: Icon(Icons.home),
-                    label: 'Home',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(Icons.grid_view_outlined),
-                    selectedIcon: Icon(Icons.grid_view),
-                    label: 'Albums',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(Icons.person_outline),
-                    selectedIcon: Icon(Icons.person),
-                    label: 'Profile',
-                  ),
-                ],
+              minimum: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: _BrutalBottomNav(
+                selected: _tab,
+                onSelect: (value) => setState(() => _tab = value),
               ),
             ),
     );
@@ -471,6 +455,96 @@ class _WelcomePage extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _BrutalBottomNav extends StatelessWidget {
+  const _BrutalBottomNav({required this.selected, required this.onSelect});
+  final int selected;
+  final ValueChanged<int> onSelect;
+
+  static const _items = [
+    (Icons.home_outlined, Icons.home, 'Home'),
+    (Icons.grid_view_outlined, Icons.grid_view, 'Albums'),
+    (Icons.person_outline, Icons.person, 'Profile'),
+  ];
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 68,
+    decoration: BoxDecoration(
+      color: AppColors.paper,
+      border: Border.all(color: AppColors.ink, width: 2),
+      borderRadius: BorderRadius.circular(5),
+      boxShadow: const [BoxShadow(color: AppColors.ink, offset: Offset(4, 4))],
+    ),
+    child: Row(
+      children: [
+        for (var index = 0; index < _items.length; index++)
+          Expanded(
+            child: _BrutalNavItem(
+              icon: _items[index].$1,
+              selectedIcon: _items[index].$2,
+              label: _items[index].$3,
+              selected: selected == index,
+              onTap: () => onSelect(index),
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
+class _BrutalNavItem extends StatelessWidget {
+  const _BrutalNavItem({
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    selected: selected,
+    label: label,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(3),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.emerald : Colors.transparent,
+            border: selected
+                ? Border.all(color: AppColors.ink, width: 2)
+                : null,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(selected ? selectedIcon : icon, size: 22),
+              const SizedBox(height: 2),
+              Text(
+                label.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
           ),
         ),
       ),
