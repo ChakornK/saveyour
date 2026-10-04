@@ -20,16 +20,33 @@ class PostDetailModal extends StatelessWidget {
     required SavedPost post,
     required VoidCallback onDelete,
     required ValueChanged<String> onRemoveFromAlbum,
-  }) => showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => PostDetailModal(
+  }) {
+    final wide = MediaQuery.sizeOf(context).width >= 760;
+    final content = PostDetailModal(
       post: post,
       onDelete: onDelete,
       onRemoveFromAlbum: onRemoveFromAlbum,
-    ),
-  );
+    );
+    if (wide) {
+      return showDialog<void>(
+        context: context,
+        builder: (_) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640, maxHeight: 760),
+            child: content,
+          ),
+        ),
+      );
+    }
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => content,
+    );
+  }
 
   @override
   Widget build(BuildContext context) => DraggableScrollableSheet(
@@ -39,7 +56,7 @@ class PostDetailModal extends StatelessWidget {
     builder: (context, controller) => Material(
       color: AppColors.paper,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+        borderRadius: BorderRadius.circular(5),
         side: BorderSide(color: AppColors.ink, width: 2),
       ),
       child: ListView(
