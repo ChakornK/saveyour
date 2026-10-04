@@ -46,10 +46,10 @@ Implement and verify a native ONNX image-tagging provider, integrate it with the
   - _Requirements: 3.4, 4.4, 5.2, 7.3_
 
 - [ ] 8. Run full validation
-  - Run Bun typecheck and tests.
-  - Build the worker image and confirm model provisioning.
-  - Run live social-media fixtures through terminal status.
-  - Verify no Gemini call is required for local tags and no MongoDB `_id` error occurs.
+  - [x] Run Bun typecheck and tests.
+  - [x] Build the worker image and confirm model provisioning.
+  - [ ] Run live social-media fixtures through terminal status.
+  - [ ] Verify no Gemini call is required for local tags and no MongoDB `_id` error occurs.
   - _Requirements: 6.1, 6.2, 6.3, 7.1, 7.2, 7.4
 
 - [x] 9. Checkpoint and commit
