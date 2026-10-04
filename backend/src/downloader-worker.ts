@@ -39,8 +39,8 @@ const worker = new YtDlpMediaWorker(
   store,
   new ProcessYtDlp(
     createYtDlpConfig(
-      config.ytDlpBinary,
-      config.ytDlpTempDir,
+      config.ytDlpBinary ?? "yt-dlp",
+      config.ytDlpTempDir ?? "/tmp/saveyour-tech",
       config.mediaMaxBytes ?? 25 * 1024 * 1024,
       config.requestTimeoutMs ?? 10_000,
     ),
