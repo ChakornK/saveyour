@@ -5,8 +5,7 @@ services:
     env_file: [.env]
     environment:
       APP_ENV: production
-      MONGO_URI: mongodb://mongo:27017/saveyour-tech
-      MONGO_DATABASE: saveyour-tech
+      MONGO_URI: mongodb://mongo:27017
       REDIS_URL: redis://redis:6379
       SEARCH_URL: http://meilisearch:7700
       SEAWEEDFS_ENDPOINT: http://seaweedfs:8333
@@ -26,8 +25,7 @@ services:
     env_file: [.env]
     environment:
       APP_ENV: production
-      MONGO_URI: mongodb://mongo:27017/saveyour-tech
-      MONGO_DATABASE: saveyour-tech
+      MONGO_URI: mongodb://mongo:27017
       REDIS_URL: redis://redis:6379
       SEARCH_URL: http://meilisearch:7700
       SEAWEEDFS_ENDPOINT: http://seaweedfs:8333
@@ -46,8 +44,7 @@ services:
     env_file: [.env]
     environment:
       APP_ENV: production
-      MONGO_URI: mongodb://mongo:27017/saveyour-tech
-      MONGO_DATABASE: saveyour-tech
+      MONGO_URI: mongodb://mongo:27017
       SEAWEEDFS_ENDPOINT: http://seaweedfs:8333
       SEAWEEDFS_BUCKET: saveyour-tech
       YTDLP_BINARY: /usr/local/bin/yt-dlp
