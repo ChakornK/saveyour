@@ -1,7 +1,9 @@
 import { Elysia } from 'elysia'
 
-export const ownerScope = new Elysia({ name: 'owner-scope' }).derive(({ headers, set }) => {
+export const requireOwner = (headers: Record<string, string | undefined>, set: { status?: number }) => {
   const ownerId = headers['x-owner-id']
-  if (!ownerId || ownerId.length > 128) { set.status = 401; throw new Error('owner identity is required') }
-  return { ownerId }
-})
+  if (!ownerId || ownerId.length > 128) { set.status = 401; return undefined }
+  return ownerId
+}
+
+export const ownerScope = new Elysia({ name: 'owner-scope' }).derive(({ headers, set }) => ({ ownerId: requireOwner(headers, set) as string }))
