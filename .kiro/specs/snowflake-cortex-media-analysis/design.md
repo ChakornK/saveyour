@@ -24,7 +24,7 @@ graph TD
 
 **Included:** Cortex client, Cortex capability checks, image/frame analysis, `AI_TRANSCRIBE`, embeddings, response schemas, provider errors, retry policy, prompt versions, fixture tests, approved live Cortex tests.
 
-**Excluded:** TiDB schema and repositories, MongoDB migration, Meilisearch replacement, Redis queue behavior, API routes, worker lease implementation, SeaweedFS implementation, and final result persistence.
+**Excluded:** database schemas and repositories, data migration, search replacement, Redis queue behavior, API routes, worker lease implementation, SeaweedFS implementation, and final result persistence.
 
 ## Components and Interfaces
 

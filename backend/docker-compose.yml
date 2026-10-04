@@ -1,4 +1,60 @@
 services:
+  api:
+    build: .
+    command: ["bun", "src/index.ts"]
+    env_file: [.env]
+    environment:
+      APP_ENV: production
+      MONGO_URI: mongodb://mongo:27017
+      REDIS_URL: redis://redis:6379
+      SEARCH_URL: http://meilisearch:7700
+      SEAWEEDFS_ENDPOINT: http://seaweedfs:8333
+      SEAWEEDFS_BUCKET: saveyour-tech
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-local-development-key}
+    ports: ["3000:3000"]
+    depends_on:
+      mongo: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      meilisearch: { condition: service_healthy }
+      seaweedfs: { condition: service_healthy }
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: ["bun", "src/worker.ts"]
+    env_file: [.env]
+    environment:
+      APP_ENV: production
+      MONGO_URI: mongodb://mongo:27017
+      REDIS_URL: redis://redis:6379
+      SEARCH_URL: http://meilisearch:7700
+      SEAWEEDFS_ENDPOINT: http://seaweedfs:8333
+      SEAWEEDFS_BUCKET: saveyour-tech
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-local-development-key}
+    depends_on:
+      mongo: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      meilisearch: { condition: service_healthy }
+      seaweedfs: { condition: service_healthy }
+    restart: unless-stopped
+
+  downloader:
+    build: .
+    command: ["bun", "src/downloader-worker.ts"]
+    env_file: [.env]
+    environment:
+      APP_ENV: production
+      MONGO_URI: mongodb://mongo:27017
+      SEAWEEDFS_ENDPOINT: http://seaweedfs:8333
+      SEAWEEDFS_BUCKET: saveyour-tech
+      YTDLP_BINARY: /usr/local/bin/yt-dlp
+      YTDLP_TEMP_DIR: /tmp/saveyour-media
+      MEDIA_MAX_BYTES: 26214400
+    depends_on:
+      mongo: { condition: service_healthy }
+      seaweedfs: { condition: service_healthy }
+    restart: unless-stopped
+
   mongo:
     image: mongo:8
     restart: unless-stopped
@@ -29,13 +85,29 @@ services:
       timeout: 5s
       retries: 10
 
+  seaweedfs:
+    image: chrislusf/seaweedfs:3.80
+    restart: unless-stopped
+    command: ["server", "-dir=/data", "-s3", "-s3.port=8333"]
+    ports:
+      - "8333:8333"
+      - "9333:9333"
+    volumes:
+      - saveyour-tech-seaweedfs-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:9333/cluster/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
   meilisearch:
     image: getmeili/meilisearch:v1.15
     restart: unless-stopped
     ports:
       - "7700:7700"
     environment:
-      MEILI_ENV: development
+      MEILI_ENV: production
       MEILI_NO_ANALYTICS: "true"
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-change-this-meilisearch-key}
     volumes:
@@ -50,3 +122,4 @@ volumes:
   saveyour-tech-mongo-data:
   saveyour-tech-redis-data:
   saveyour-tech-meilisearch-data:
+  saveyour-tech-seaweedfs-data:
