@@ -3,13 +3,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'domain/models.dart';
+import 'services/auth.dart';
 import 'services/share_intent.dart';
 import 'theme/app_theme.dart';
 import 'widgets/post_card.dart';
 import 'widgets/post_detail_modal.dart';
 import 'screens.dart';
 
-void main() => runApp(const SaveYourTechApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const SaveYourTechApp());
+}
 
 class SaveYourTechApp extends StatelessWidget {
   const SaveYourTechApp({super.key});
@@ -29,6 +33,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final _repository = MockAppRepository();
+  final _auth = GoogleAuthService();
   final _searchController = TextEditingController();
   final _shareIntents = ShareIntentService();
   StreamSubscription<String>? _shareSubscription;
@@ -38,6 +43,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _restoreAuth();
     _load();
     _shareIntents.start();
     _shareSubscription = _shareIntents.links.listen(_showSaveDialogForUrl);
@@ -49,6 +55,11 @@ class _HomePageState extends State<HomePage> {
     _shareIntents.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _restoreAuth() async {
+    await _auth.restoreSession();
+    if (mounted) setState(() {});
   }
 
   Future<void> _load() async {
