@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { OnnxClipImageTagger } from "../src/infrastructure/ai/image-tagger";
+import { ImageTaggerInputError, OnnxClipImageTagger } from "../src/infrastructure/ai/image-tagger";
 
 describe("ONNX image tagger", () => {
   test("rejects empty and unsupported input without inference", async () => {
@@ -24,6 +24,7 @@ describe("ONNX image tagger", () => {
     await expect(tagger.tagImage({ bytes: new Uint8Array([1, 2, 3]), mimeType: "image/jpeg" })).rejects.toThrow();
     expect(metrics).toHaveLength(1);
     expect(metrics[0]).toMatchObject({ outcome: "error", payloadBytes: 3 });
+    await expect(Promise.reject(new ImageTaggerInputError("invalid"))).rejects.toMatchObject({ name: "PermanentError", code: "IMAGE_TAGGER_INVALID_INPUT" });
   });
 
   test("reports empty-input metrics without exposing payloads", async () => {

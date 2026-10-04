@@ -7,6 +7,11 @@ export interface ImageTagger { tagImage(input: { bytes: Uint8Array; mimeType: st
 
 export class ImageTaggerInputError extends Error {
   readonly code = "IMAGE_TAGGER_INVALID_INPUT";
+  readonly name = "PermanentError";
+}
+export class ImageTaggerCapabilityError extends Error {
+  readonly code = "IMAGE_TAGGER_CAPABILITY_ERROR";
+  readonly name = "PermanentError";
 }
 export interface ImageTaggerMetrics {
   payloadBytes: number;
@@ -77,7 +82,7 @@ export class OnnxClipImageTagger implements ImageTagger {
     const session = await this.getVision();
     const inputName = session.inputNames.find((name) => name === "pixel_values");
     const outputName = session.outputNames.find((name) => name === "image_embeds");
-    if (!inputName || !outputName) throw new Error("IMAGE_TAGGER_MODEL_CONTRACT_INVALID");
+    if (!inputName || !outputName) throw new ImageTaggerCapabilityError("IMAGE_TAGGER_MODEL_CONTRACT_INVALID");
     let output: Record<string, ort.Tensor>;
     try {
       output = await this.withTimeout(session.run({ [inputName]: new ort.Tensor("float32", pixels, [1, 3, 224, 224]) }));
