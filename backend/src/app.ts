@@ -46,6 +46,10 @@ import {
   InMemoryAccountRepository,
   InMemorySessionRepository,
 } from "./modules/auth/service";
+import {
+  MongoAccountRepository,
+  MongoSessionRepository,
+} from "./infrastructure/mongo/auth-repositories";
 import { initializeSearchIndex } from "./infrastructure/search/index-init";
 import { profileRoutes } from "./modules/profile/routes";
 
@@ -143,8 +147,8 @@ export const createApp = (config: AppConfig) => {
     new QueuePublisher(queue),
   );
   const authService = new AuthService(
-    new InMemoryAccountRepository(),
-    new InMemorySessionRepository(),
+    useProduction ? new MongoAccountRepository(mongo!) : new InMemoryAccountRepository(),
+    useProduction ? new MongoSessionRepository(mongo!) : new InMemorySessionRepository(),
     new GoogleWebCryptoVerifier(
       "https://www.googleapis.com/oauth2/v3/certs",
     ),
