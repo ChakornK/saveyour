@@ -33,15 +33,13 @@ import { RedisClientAdapter } from "./infrastructure/queue/redis-client";
 import { RedisJobQueue } from "./infrastructure/queue/redis-queue";
 import { InMemoryRateLimitStore, rateLimit } from "./modules/limits/rate-limit";
 import { authentication } from "./modules/auth/auth";
+import { authContext } from "./modules/auth/context";
 import { captureRoutes } from "./modules/capture/routes";
 import { captureApiRoutes } from "./modules/capture/api-routes";
 import { CaptureService } from "./modules/capture/service";
 import { InMemoryCaptureRepository } from "./modules/capture/repository";
 import { MongoCaptureRepository } from "./modules/capture/persistent-repository";
-import {
-  AuthService,
-  GoogleWebCryptoVerifier,
-} from "./modules/auth/service";
+import { AuthService, GoogleWebCryptoVerifier } from "./modules/auth/service";
 import { createAuthRoutes } from "./modules/auth/routes";
 import {
   InMemoryAccountRepository,
@@ -165,9 +163,7 @@ export const createApp = (config: AppConfig) => {
   const authService = new AuthService(
     authAccounts,
     authSessions,
-    new GoogleWebCryptoVerifier(
-      "https://www.googleapis.com/oauth2/v3/certs",
-    ),
+    new GoogleWebCryptoVerifier("https://www.googleapis.com/oauth2/v3/certs"),
   );
   const captureRepository = useDurableInfrastructure
     ? new MongoCaptureRepository(mongo!)
@@ -191,6 +187,7 @@ export const createApp = (config: AppConfig) => {
       }),
     )
     .use(rateLimit(new InMemoryRateLimitStore(), 120, 60_000))
+    .use(authContext(authService))
     .use(
       authentication({
         required: config.authRequired,

@@ -3,18 +3,21 @@ import { AuthError, AuthService } from "../auth/service";
 import { requireOwner } from "../auth/owner-scope";
 import { AlbumError } from "./types";
 import { AlbumService } from "./service";
+import { authContext } from "../auth/context";
 
 const owner = (
+  authenticated: { ownerId: string } | undefined,
   headers: Record<string, string | undefined>,
   set: { status?: number | string },
-) => requireOwner(headers, set);
+) => authenticated?.ownerId ?? requireOwner(headers, set);
 
 export const albumRoutes = (service: AlbumService, _auth: AuthService) =>
   new Elysia({ name: "albums" })
+    .use(authContext(_auth))
     .get(
       "/albums",
-      async ({ headers, query, set }) => {
-        const ownerId = owner(headers, set);
+      async ({ headers, query, set, authenticated }) => {
+        const ownerId = owner(authenticated, headers, set);
         if (!ownerId)
           return {
             code: "UNAUTHORIZED",
@@ -31,8 +34,8 @@ export const albumRoutes = (service: AlbumService, _auth: AuthService) =>
     )
     .post(
       "/albums",
-      async ({ headers, body, set }) => {
-        const ownerId = owner(headers, set);
+      async ({ headers, body, set, authenticated }) => {
+        const ownerId = owner(authenticated, headers, set);
         if (!ownerId)
           return {
             code: "UNAUTHORIZED",
@@ -45,8 +48,8 @@ export const albumRoutes = (service: AlbumService, _auth: AuthService) =>
     )
     .patch(
       "/albums/:albumId",
-      async ({ headers, params, body, set }) => {
-        const ownerId = owner(headers, set);
+      async ({ headers, params, body, set, authenticated }) => {
+        const ownerId = owner(authenticated, headers, set);
         if (!ownerId)
           return {
             code: "UNAUTHORIZED",
@@ -61,8 +64,8 @@ export const albumRoutes = (service: AlbumService, _auth: AuthService) =>
     )
     .get(
       "/albums/:albumId",
-      async ({ headers, params, set }) => {
-        const ownerId = owner(headers, set);
+      async ({ headers, params, set, authenticated }) => {
+        const ownerId = owner(authenticated, headers, set);
         if (!ownerId)
           return {
             code: "UNAUTHORIZED",
@@ -74,8 +77,8 @@ export const albumRoutes = (service: AlbumService, _auth: AuthService) =>
     )
     .post(
       "/albums/:albumId/posts/:postId",
-      async ({ headers, params, set }) => {
-        const ownerId = owner(headers, set);
+      async ({ headers, params, set, authenticated }) => {
+        const ownerId = owner(authenticated, headers, set);
         if (!ownerId)
           return {
             code: "UNAUTHORIZED",
@@ -87,8 +90,8 @@ export const albumRoutes = (service: AlbumService, _auth: AuthService) =>
     )
     .delete(
       "/albums/:albumId/posts/:postId",
-      async ({ headers, params, set }) => {
-        const ownerId = owner(headers, set);
+      async ({ headers, params, set, authenticated }) => {
+        const ownerId = owner(authenticated, headers, set);
         if (!ownerId)
           return {
             code: "UNAUTHORIZED",
