@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'domain/models.dart';
-import 'services/auth.dart';
+import 'services/api_client.dart' as api;
+import 'services/auth.dart' as auth;
 import 'services/share_intent.dart';
 import 'theme/app_theme.dart';
 import 'widgets/post_card.dart';
@@ -12,8 +13,11 @@ import 'screens.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  requiredAppConfig('API_BASE_URL', apiBaseUrl);
-  requiredAppConfig('GOOGLE_SERVER_CLIENT_ID', googleServerClientId);
+  auth.requiredAppConfig('API_BASE_URL', api.apiBaseUrl);
+  auth.requiredAppConfig(
+    'GOOGLE_SERVER_CLIENT_ID',
+    auth.googleServerClientId,
+  );
   runApp(const SaveYourTechApp());
 }
 
@@ -34,8 +38,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final _repository = ApiClient();
-  final _auth = GoogleAuthService();
+  final _repository = api.ApiClient();
+  final _auth = auth.GoogleAuthService();
   final _searchController = TextEditingController();
   final _shareIntents = ShareIntentService();
   StreamSubscription<String>? _shareSubscription;

@@ -249,6 +249,15 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   bool _signingIn = false;
 
+  Future<void> _logOut() async {
+    if (widget.auth != null) {
+      await widget.auth!.signOut();
+    } else {
+      await widget.repository.logOut();
+    }
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) => FutureBuilder<UserProfile>(
     future: widget.repository.getProfile(),
@@ -300,7 +309,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 32),
           BrutalSurface(
-            child: widget.auth?.isSignedIn == true
+            child: widget.auth?.isSignedIn == true || widget.auth == null
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -313,10 +322,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         label: 'Log out',
                         icon: const Icon(Icons.logout),
                         variant: BrutalistButtonVariant.destructive,
-                        onPressed: () async {
-                          await widget.auth?.signOut();
-                          if (mounted) setState(() {});
-                        },
+                        onPressed: _logOut,
                       ),
                     ],
                   )

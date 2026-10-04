@@ -6,7 +6,7 @@ import '../domain/models.dart';
 
 const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
 
-class ApiClient implements AppRepository {
+class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
   ApiClient({http.Client? client, this.baseUrl = apiBaseUrl, this.authToken})
     : _client = client ?? http.Client();
 
@@ -49,6 +49,25 @@ class ApiClient implements AppRepository {
     if (response.statusCode >= 400)
       throw ApiException(response.statusCode, 'Unable to remove this post.');
   }
+
+  @override
+  Future<Album> createAlbum(String name) => throw UnimplementedError();
+
+  @override
+  Future<void> addToAlbum(String postId, String albumId) => throw UnimplementedError();
+
+  @override
+  Future<List<Album>> listAlbums({String query = '', Set<String> tags = const {}}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AlbumDetail> getAlbum(String albumId) => throw UnimplementedError();
+
+  @override
+  Future<UserProfile> getProfile() => throw UnimplementedError();
+
+  @override
+  Future<void> logOut() => throw UnimplementedError();
 
   @override
   Future<void> removeFromAlbum(String postId, String album) async {
