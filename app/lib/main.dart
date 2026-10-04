@@ -173,7 +173,7 @@ class _HomePageState extends State<HomePage> {
                 maxCrossAxisExtent: 340,
                 mainAxisSpacing: 18,
                 crossAxisSpacing: 18,
-                childAspectRatio: .80,
+                childAspectRatio: 1.42,
               ),
               itemCount: _state.data?.length ?? 0,
               itemBuilder: (context, index) => PostCard(
