@@ -18,11 +18,6 @@ services:
       meilisearch: { condition: service_healthy }
       seaweedfs: { condition: service_healthy }
     restart: unless-stopped
-    labels:                                                                                                                                                                 
-     - traefik.enable=true                                                                                                                                                 
-     - traefik.http.routers.api.rule=Host(`api.saveyour.tech`)                                                                                                             
-     - traefik.http.routers.api.entrypoints=http                                                                                                                           
-     - traefik.http.services.api.loadbalancer.server.port=3000
 
   worker:
     build: .
