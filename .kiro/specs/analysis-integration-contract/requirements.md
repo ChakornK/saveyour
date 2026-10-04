@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This specification defines the integration contract connecting Snowflake Cortex media analysis to TiDB persistence and search. It owns shared versioned types, job orchestration, queue sequencing, leases, retries, idempotency, atomic result persistence, search-document updates, and end-to-end behavior.
+This specification defines the integration contract connecting Snowflake Cortex media analysis to application persistence and search. It owns shared versioned types, job orchestration, queue sequencing, leases, retries, idempotency, atomic result persistence, search-document updates, and end-to-end behavior.
 
 ## Glossary
 
