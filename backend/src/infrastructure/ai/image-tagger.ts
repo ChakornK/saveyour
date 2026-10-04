@@ -12,7 +12,7 @@ export class OnnxClipImageTagger implements ImageTagger {
   private text?: Promise<ort.InferenceSession>;
   constructor(private readonly config: ClipTaggerConfig) {}
   private getVision() { return (this.vision ??= ort.InferenceSession.create(this.config.visionModelPath)); }
-  private getTokenizer() { return (this.tokenizer ??= Promise.resolve(new Tokenizer({}, this.config.tokenizerPath!))); }
+  private getTokenizer() { return (this.tokenizer ??= Promise.reject(new Error("Tokenizer JSON requires a compatible tokenizer runtime"))); }
   private getText() { return (this.text ??= ort.InferenceSession.create(this.config.textModelPath!)); }
   async tagImage(input: { bytes: Uint8Array; mimeType: string }) {
     if (!input.mimeType.startsWith("image/") || !input.bytes.byteLength) return [];
