@@ -19,7 +19,7 @@ import { MongoAnalysisRepository } from './infrastructure/mongo/analysis-reposit
 import { MongoDerivedPostStore } from './infrastructure/mongo/derived-post-store'
 import { MongoPostSource } from './infrastructure/mongo/post-source'
 import { MongoOutbox } from './infrastructure/mongo/outbox'
-import { OpenSearchIndex } from './infrastructure/search/opensearch-index'
+import { MeilisearchIndex } from './infrastructure/search/meilisearch-index'
 import { SearchEventDelivery } from './infrastructure/search/event-index-delivery'
 import { GeminiProvider } from './infrastructure/ai/gemini-provider'
 import { InMemoryJobQueue } from './modules/analysis/queue'
@@ -38,7 +38,7 @@ export const createApp = (config: AppConfig) => {
   const derivedStore = useProduction ? new MongoDerivedPostStore(mongo!) : new InMemoryDerivedPostStore()
   const source = useProduction ? new MongoPostSource(mongo!) : new InMemoryPostSource()
   const searchConfig = useProduction && config.searchUrl ? { url: config.searchUrl, index: config.searchIndex, apiKey: config.searchApiKey } : undefined
-  const searchIndex = searchConfig ? new OpenSearchIndex(searchConfig) : new InMemorySearchIndex()
+  const searchIndex = searchConfig ? new MeilisearchIndex(searchConfig) : new InMemorySearchIndex()
   const searchService = new SearchService(searchIndex)
   const redis = useProduction && config.redisUrl ? new RedisClientAdapter(config.redisUrl) : undefined
   const initialize = async () => {

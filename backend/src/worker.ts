@@ -11,7 +11,7 @@ import { AnalysisWorker } from './modules/analysis/queue'
 import { AnalysisOrchestrator } from './modules/analysis/orchestrator'
 import { AnalysisPipeline } from './modules/analysis/pipeline'
 import { GeminiProvider } from './infrastructure/ai/gemini-provider'
-import { OpenSearchIndex } from './infrastructure/search/opensearch-index'
+import { MeilisearchIndex } from './infrastructure/search/meilisearch-index'
 import { SearchEventDelivery } from './infrastructure/search/event-index-delivery'
 
 const config = loadConfig()
@@ -28,7 +28,7 @@ if (!config.geminiApiKey) throw new Error('GEMINI_API_KEY is required for the wo
 if (!config.searchUrl) throw new Error('SEARCH_URL is required for the worker')
 const redis = new RedisClientAdapter(config.redisUrl)
 await redis.connect()
-const search = new OpenSearchIndex({ url: config.searchUrl, index: config.searchIndex, apiKey: config.searchApiKey })
+const search = new MeilisearchIndex({ url: config.searchUrl, index: config.searchIndex, apiKey: config.searchApiKey })
 const provider = new GeminiProvider({ apiKey: config.geminiApiKey, model: config.geminiModel, timeoutMs: config.geminiTimeoutMs, maxAttempts: config.geminiMaxAttempts })
 const delivery = new SearchEventDelivery(search)
 const outboxWorker = new OutboxWorker(outbox, delivery)
