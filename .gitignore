@@ -13,3 +13,5 @@ app/linux/flutter/generated_plugin_registrant.h
 app/linux/flutter/generated_plugins.cmake
 app/android/app/google-services.json
 app/android/app/google-oauth-client.json
+
+app/android/build/
