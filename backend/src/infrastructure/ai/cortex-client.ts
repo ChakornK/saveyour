@@ -100,7 +100,7 @@ export class SnowflakeCortexClient implements CortexClient {
         );
       return this.execute(
         "SELECT SNOWFLAKE.CORTEX.COMPLETE(?, ?)",
-        [model, JSON.stringify(args[0])],
+        [model, typeof args[0] === "string" ? args[0] : JSON.stringify(args[0])],
         signal,
       );
     }

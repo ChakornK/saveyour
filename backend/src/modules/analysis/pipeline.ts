@@ -84,7 +84,7 @@ export class AnalysisPipeline implements StageHandler {
       const result = validateGeneratedDescription(
         await this.ai.describeImage({
           content: source.media?.[0]
-            ? `data:${source.media[0].mimeType};base64,${Buffer.from(source.media[0].bytes).toString("base64")}`
+            ? `data:${source.media[0].mimeType};base64,${Buffer.from(source.media[0].bytes.buffer, source.media[0].bytes.byteOffset, source.media[0].bytes.byteLength).toString("base64")}`
             : source.sourceText,
           mimeType: source.media?.[0]?.mimeType,
         }),
