@@ -202,7 +202,12 @@ export class AuthService {
     const repository = this.accounts as AccountRepository & {
       findById?: (id: string) => Promise<Account | undefined>;
     };
-    return repository.findById?.(accountId);
+    const account = await repository.findById?.(accountId);
+    if (account) return account;
+    const accounts = this.accounts as AccountRepository & {
+      findByGoogleSubject?: (subject: string) => Promise<Account | undefined>;
+    };
+    return accounts.findByGoogleSubject?.(accountId);
   }
 
   async revoke(token: string) {
