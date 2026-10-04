@@ -4,6 +4,7 @@ import 'domain/models.dart';
 import 'theme/app_theme.dart';
 import 'widgets/brutalist_button.dart';
 import 'widgets/post_card.dart';
+import 'widgets/post_detail_modal.dart';
 
 class AlbumsPage extends StatefulWidget {
   const AlbumsPage({
@@ -197,7 +198,12 @@ class _AlbumDetailPageState extends State<AlbumDetailPage> {
                     itemCount: posts.length,
                     itemBuilder: (_, i) => PostCard(
                       post: posts[i],
-                      onTap: () => widget.onOpenPost(posts[i]),
+                      onTap: () => PostDetailModal.show(
+                        context,
+                        post: posts[i],
+                        onDelete: () => Navigator.pop(context),
+                        onRemoveFromAlbum: (_) {},
+                      ),
                     ),
                   ),
                 ),
