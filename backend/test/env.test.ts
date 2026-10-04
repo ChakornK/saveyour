@@ -15,7 +15,9 @@ describe('loadConfig', () => {
       searchIndex: 'saveyour-posts',
       geminiModel: 'gemini-2.0-flash',
       geminiTimeoutMs: 10000,
-      geminiMaxAttempts: 3
+      geminiMaxAttempts: 3,
+      authRequired: false,
+      authTokens: {}
     })
   })
 

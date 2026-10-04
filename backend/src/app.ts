@@ -63,6 +63,7 @@ export const createApp = (config: AppConfig) => {
     .use(openapi({ documentation: { info: { title: 'saveyour.tech API', version: '0.1.0' } } }))
     .use(cors({ origin: config.corsOrigins.length === 0 ? true : config.corsOrigins }))
     .use(rateLimit(new InMemoryRateLimitStore(), 120, 60_000))
+    .use(authentication({ required: config.authRequired, tokens: config.authTokens }))
     .onError(({ code, error, set }) => { const requestId = crypto.randomUUID(); set.status = code === 'NOT_FOUND' ? 404 : 500; const detail = error instanceof Error ? error.message : undefined; return { code: code === 'NOT_FOUND' ? 'NOT_FOUND' : 'INTERNAL_ERROR', message: code === 'NOT_FOUND' ? 'Route not found' : 'An unexpected error occurred', requestId, ...(config.appEnv === 'development' && detail ? { detail } : {}) } })
     .use(healthRoutes(config, mongo))
     .use(analysisRoutes(orchestrator, repository, metrics))
