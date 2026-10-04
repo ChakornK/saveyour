@@ -79,7 +79,14 @@ export class OnnxClipImageTagger implements ImageTagger {
       return { label, confidence: Math.max(0, Math.min(1, (similarity + 1) / 2)) };
     }));
     const results = tags.filter((tag) => tag.confidence >= (this.config.threshold ?? 0.5)).sort((a, b) => b.confidence - a.confidence).slice(0, 12);
-    this.emit({ payloadBytes, preprocessingMs, inferenceMs, modelVersion: this.config.modelVersion, outcome: results.length ? "success" : "empty" });
-    return results;
+    const unique = new Map<string, ImageTag>();
+    for (const tag of results) {
+      const label = tag.label.trim().toLocaleLowerCase();
+      const previous = unique.get(label);
+      if (!previous || tag.confidence > previous.confidence) unique.set(label, { label, confidence: tag.confidence });
+    }
+    const normalized = [...unique.values()].sort((a, b) => b.confidence - a.confidence);
+    this.emit({ payloadBytes, preprocessingMs, inferenceMs, modelVersion: this.config.modelVersion, outcome: normalized.length ? "success" : "empty" });
+    return normalized;
   }
 }
