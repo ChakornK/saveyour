@@ -1,4 +1,4 @@
-package com.example.saveyour_tech
+package tech.saveyour.SaveYour
 
 import io.flutter.embedding.android.FlutterActivity
 
