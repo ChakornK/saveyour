@@ -54,6 +54,7 @@ export class OnnxClipImageTagger implements ImageTagger {
     const embedding = Array.from(output[outputName].data as Float32Array);
     const norm = Math.sqrt(embedding.reduce((sum, value) => sum + value * value, 0)) || 1;
     const normalized = embedding.map((value) => value / norm);
+    if (!this.config.textModelPath || !this.config.tokenizerPath || !this.config.tokenizerConfigPath) return [];
     const tags = await Promise.all(this.config.labels.map(async (label) => {
       const text = await this.textEmbedding(label);
       const similarity = normalized.reduce((sum, value, index) => sum + value * (text[index] ?? 0), 0);

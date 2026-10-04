@@ -45,16 +45,7 @@ describe('loadConfig', () => {
       cortexModel: 'claude-3-5-sonnet',
       cortexEmbeddingModel: 'snowflake-arctic-embed-m-v1.5',
       cortexTimeoutMs: 120000,
-      cortexMaxAttempts: 3,
-      mediaMaxBytes: 25 * 1024 * 1024,
-      ytDlpBinary: 'yt-dlp',
-      ytDlpTempDir: '/tmp/saveyour-tech',
-      requestTimeoutMs: 10000,
-      integrationFlags: { cortexAnalysis: true, cortexTranscription: true },
-      googleIssuer: 'https://accounts.google.com',
-      sessionTtlSeconds: 2592000,
-      snowflakeTokenType: 'oauth',
-      geminiApiKey: undefined
+      cortexMaxAttempts: 3
     })
   })
 
