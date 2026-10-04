@@ -4,6 +4,10 @@ import { Tokenizer } from "@huggingface/tokenizers";
 
 export interface ImageTag { label: string; confidence: number }
 export interface ImageTagger { tagImage(input: { bytes: Uint8Array; mimeType: string }): Promise<ImageTag[]> }
+
+export class ImageTaggerInputError extends Error {
+  readonly code = "IMAGE_TAGGER_INVALID_INPUT";
+}
 export interface ImageTaggerMetrics {
   payloadBytes: number;
   preprocessingMs: number;
@@ -59,7 +63,7 @@ export class OnnxClipImageTagger implements ImageTagger {
     let data: Buffer; let info: { width: number };
     try {
       ({ data, info } = await sharp(input.bytes).resize(224, 224, { fit: "cover" }).removeAlpha().raw().toBuffer({ resolveWithObject: true }));
-    } catch (error) { return this.errorMetrics(payloadBytes, preprocessingStarted, error); }
+    } catch { return this.errorMetrics(payloadBytes, preprocessingStarted, new ImageTaggerInputError("IMAGE_TAGGER_INVALID_INPUT")); }
     const pixels = new Float32Array(3 * 224 * 224);
     for (let y = 0; y < 224; y++) for (let x = 0; x < 224; x++) {
       const source = (y * info.width + x) * 3;
@@ -73,7 +77,7 @@ export class OnnxClipImageTagger implements ImageTagger {
     const session = await this.getVision();
     const inputName = session.inputNames.find((name) => name === "pixel_values");
     const outputName = session.outputNames.find((name) => name === "image_embeds");
-    if (!inputName || !outputName) throw new Error("ONNX vision model contract is invalid");
+    if (!inputName || !outputName) throw new Error("IMAGE_TAGGER_MODEL_CONTRACT_INVALID");
     let output: Record<string, ort.Tensor>;
     try {
       output = await this.withTimeout(session.run({ [inputName]: new ort.Tensor("float32", pixels, [1, 3, 224, 224]) }));
