@@ -1,5 +1,6 @@
 import type { AnalysisJob, AnalysisStage, SearchDocument } from "./contracts";
 import type { AiProvider } from "./provider";
+import type { CortexAnalysisProvider } from "../../infrastructure/ai/cortex-provider";
 import type { DerivedPostStore, EventPublisher } from "./events";
 import type { StageHandler } from "./orchestrator";
 import type { MediaProcessor } from "./media";
