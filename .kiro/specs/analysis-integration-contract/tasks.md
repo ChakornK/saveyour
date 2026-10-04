@@ -6,35 +6,35 @@ Implement the shared contract and orchestration layer that connects the independ
 
 ## Tasks
 
-- [ ] 1. Freeze shared versioned contracts
+- [x] 1. Freeze shared versioned contracts
   - Define job request, job context, stage state, result envelope, transcript, embedding, completion, failure, lease, and search-document types.
   - Define schema-version compatibility behavior.
   - Define stable idempotency/completion keys.
   - Publish interfaces consumed by Cortex and TiDB specs.
   - _Requirements: 1.1-1.5_
 
-- [ ] 2. Implement capture transaction orchestration
+- [x] 2. Implement capture transaction orchestration
   - Validate owner scope and canonical URL.
   - Create post, media metadata, analysis job, and initial outbox event through TiDB transaction port.
   - Return existing job for replayed capture idempotency key.
   - Acknowledge only after commit.
   - _Requirements: 2.1-2.5, 7.1-7.2_
 
-- [ ] 3. Implement outbox-to-queue publication
+- [x] 3. Implement outbox-to-queue publication
   - Claim durable outbox records.
   - Publish job references to Redis after TiDB commit.
   - Implement retry and dead-letter behavior.
   - Preserve correlation and idempotency identifiers.
   - _Requirements: 2.3-2.4, 5.5, 6.5_
 
-- [ ] 4. Implement job leases
+- [x] 4. Implement job leases
   - Acquire leases atomically.
   - Add lease version/owner checks to processing.
   - Implement expiry, reclaim, and optional renewal.
   - Reject stale-worker updates.
   - _Requirements: 3.1-3.5_
 
-- [ ] 5. Implement media preparation orchestration
+- [x] 5. Implement media preparation orchestration
   - Load job context from TiDB.
   - Resolve owner-authorized media references.
   - Invoke FFmpeg for audio and representative frames.
@@ -42,7 +42,7 @@ Implement the shared contract and orchestration layer that connects the independ
   - Return normalized provider inputs.
   - _Requirements: 4.1, 7.2-7.4_
 
-- [ ] 6. Implement analysis stage orchestration
+- [x] 6. Implement analysis stage orchestration
   - Invoke Cortex image analysis for images.
   - Invoke Cortex frame analysis for video frames.
   - Invoke Cortex `AI_TRANSCRIBE` for audio.
@@ -51,14 +51,14 @@ Implement the shared contract and orchestration layer that connects the independ
   - Assemble versioned result envelopes.
   - _Requirements: 4.2-4.6, 6.1-6.4_
 
-- [ ] 7. Implement atomic result persistence
+- [x] 7. Implement atomic result persistence
   - Validate schema version and result identity.
   - Persist analysis results, tags, captions, transcripts, segments, embeddings, search document, stage states, and completion outbox event in one TiDB transaction.
   - Guard transaction with current lease version.
   - Return existing state on duplicate completion.
   - _Requirements: 1.2-1.5, 5.1-5.5_
 
-- [ ] 8. Implement failure classification and retries
+- [x] 8. Implement failure classification and retries
   - Define retry policy by error category.
   - Add bounded exponential backoff and jitter.
   - Persist retry attempts and terminal failures.
@@ -66,14 +66,14 @@ Implement the shared contract and orchestration layer that connects the independ
   - Ensure queue acknowledgement occurs only after durable outcome.
   - _Requirements: 6.1-6.5_
 
-- [ ] 9. Add feature flags and health wiring
+- [x] 9. Add feature flags and health wiring
   - Add independent flags for TiDB persistence, TiDB search, Cortex analysis, and Cortex transcription.
   - Add dependency readiness checks.
   - Add correlation IDs and stage latency metrics.
   - Add dashboards/alerts for retry exhaustion, lease conflicts, and outbox backlog.
   - _Requirements: 6.5, 7.1-7.5_
 
-- [ ] 10. Add unit and contract tests
+- [x] 10. Add unit and contract tests
   - Test schema compatibility and envelope identity.
   - Test capture transaction sequencing.
   - Test outbox publication failures.
@@ -82,14 +82,14 @@ Implement the shared contract and orchestration layer that connects the independ
   - Test duplicate completion and idempotent replay.
   - _Requirements: 1.1-1.5, 2.1-2.5, 3.1-3.5, 4.1-4.6, 5.1-5.5, 6.1-6.5_
 
-- [ ] 11. Add end-to-end tests
+- [x] 11. Add end-to-end tests
   - Run capture through queue, lease, media preparation, fake Cortex, TiDB persistence, and search.
   - Run with real TiDB and fake Cortex.
   - Run with approved real Cortex and fake TiDB.
   - Test duplicate queue delivery, crash before commit, crash after commit, retry exhaustion, owner mismatch, and owner isolation.
   - _Requirements: 7.1-7.5, 8.1-8.7_
 
-- [ ] 12. Checkpoint — integration release readiness
+- [x] 12. Checkpoint — integration release readiness
   - Verify all three specs compile against the same interfaces.
   - Verify successful capture-to-analysis-to-search flow.
   - Verify no duplicate rows after replay.

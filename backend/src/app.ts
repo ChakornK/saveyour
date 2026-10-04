@@ -43,11 +43,11 @@ import { MongoCaptureRepository } from "./modules/capture/persistent-repository"
 import { CaptureService } from "./modules/capture/service";
 import { captureApiRoutes } from "./modules/capture/api-routes";
 import { RedisMediaDownloadQueue } from "./modules/media/download-queue";
-import { GoogleWebCryptoVerifier, InMemoryAccountRepository, InMemorySessionRepository } from "./modules/auth/service";
-import { MongoAccountRepository, MongoSessionRepository } from "./infrastructure/mongo/auth-repositories";
+import { checkIntegrationHealth } from "./modules/analysis/health";
 
 export const createApp = (config: AppConfig) => {
   const useProduction = config.appEnv === "production";
+  const authService = new AuthService();
   const mongo = useProduction
     ? new MongoDatabase({
         uri: config.mongoUri,
@@ -99,12 +99,6 @@ export const createApp = (config: AppConfig) => {
       ? new RedisClientAdapter(config.redisUrl)
       : undefined;
   const mediaQueue = redis ? new RedisMediaDownloadQueue(redis) : undefined;
-  const authService = new AuthService(
-    useProduction && mongo ? new MongoAccountRepository(mongo) : new InMemoryAccountRepository(),
-    useProduction && mongo ? new MongoSessionRepository(mongo) : new InMemorySessionRepository(),
-    new GoogleWebCryptoVerifier(),
-    redis,
-  );
   const captureService = new CaptureService(
     captureRepository,
     mediaQueue
@@ -131,8 +125,6 @@ export const createApp = (config: AppConfig) => {
         new MongoOutbox(mongo).ensureIndexes(),
         new MongoMediaAssetRepository(mongo).ensureIndexes(),
         new MongoCaptureRepository(mongo).ensureIndexes(),
-        new MongoAccountRepository(mongo).ensureIndexes(),
-        new MongoSessionRepository(mongo).ensureIndexes(),
       ]);
     }
     await initializeSearchIndex(searchIndex, searchConfig);
@@ -182,7 +174,6 @@ export const createApp = (config: AppConfig) => {
       authentication({
         required: config.authRequired,
         tokens: config.authTokens,
-        authenticate: async (token) => (await authService.authenticate(token)).ownerId,
       }),
     )
     .onError(({ code, error, set }) => {
@@ -208,7 +199,12 @@ export const createApp = (config: AppConfig) => {
           : {}),
       };
     })
-    .use(healthRoutes)
+    .use(healthRoutes(async () => checkIntegrationHealth({
+      tidb: async () => !config.integrationFlags.tidbPersistence || Boolean(config.tidbUrl),
+      redis: async () => !useProduction || Boolean(redis),
+      seaweedfs: async () => !useProduction || Boolean(config.seaweedfsEndpoint),
+      cortex: async () => !config.integrationFlags.cortexAnalysis || !useProduction || Boolean(config.geminiApiKey),
+    })))
     .use(analysisRoutes(orchestrator, repository, metrics))
     .use(captureRoutes(source, orchestrator))
     .use(searchRoutes(searchService, new TagSuggestionService(derivedStore)))
