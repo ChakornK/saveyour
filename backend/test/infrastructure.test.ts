@@ -32,7 +32,6 @@ describe('infrastructure contracts', () => {
     const store = new InMemoryRateLimitStore()
     const first = await store.increment('owner', 10_000)
     const second = await store.increment('owner', 10_000)
-    expect(first.count).toBeLessThanOrEqual(second.count)
-    expect(second.count).toBe(first.count + 1)
+    expect(second.count).toBe(2)
   })
 })
