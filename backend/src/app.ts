@@ -27,6 +27,7 @@ import { QueuePublisher } from './modules/analysis/queue-publisher'
 import { RedisClientAdapter } from './infrastructure/queue/redis-client'
 import { RedisJobQueue } from './infrastructure/queue/redis-queue'
 import { InMemoryRateLimitStore, rateLimit } from './modules/limits/rate-limit'
+import { authentication } from './modules/auth/auth'
 import { captureRoutes } from './modules/capture/routes'
 import { initializeSearchIndex } from './infrastructure/search/index-init'
 
