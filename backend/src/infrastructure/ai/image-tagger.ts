@@ -1,14 +1,17 @@
 import ort from "onnxruntime-node";
 import sharp from "sharp";
+import { Tokenizer } from "@huggingface/tokenizers";
 
 export interface ImageTag { label: string; confidence: number }
 export interface ImageTagger { tagImage(input: { bytes: Uint8Array; mimeType: string }): Promise<ImageTag[]> }
-export interface ClipTaggerConfig { visionModelPath: string; labels: string[]; threshold?: number }
+export interface ClipTaggerConfig { visionModelPath: string; tokenizerPath?: string; labels: string[]; threshold?: number }
 
 export class OnnxClipImageTagger implements ImageTagger {
   private vision?: Promise<ort.InferenceSession>;
+  private tokenizer?: Promise<Tokenizer>;
   constructor(private readonly config: ClipTaggerConfig) {}
   private getVision() { return (this.vision ??= ort.InferenceSession.create(this.config.visionModelPath)); }
+  private getTokenizer() { return (this.tokenizer ??= Promise.resolve(new Tokenizer(this.config.tokenizerPath!, undefined))); }
   async tagImage(input: { bytes: Uint8Array; mimeType: string }) {
     if (!input.mimeType.startsWith("image/") || !input.bytes.byteLength) return [];
     const { data, info } = await sharp(input.bytes).resize(224, 224, { fit: "cover" }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
