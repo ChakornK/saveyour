@@ -69,7 +69,11 @@ export class OnnxClipImageTagger implements ImageTagger {
   async tagImage(input: { bytes: Uint8Array; mimeType: string }) {
     const payloadBytes = input.bytes.byteLength;
     if (!input.mimeType.startsWith("image/") || !payloadBytes) { this.emit({ payloadBytes, preprocessingMs: 0, inferenceMs: 0, modelVersion: this.config.modelVersion, outcome: "empty" }); return []; }
-    if (payloadBytes > (this.config.maxBytes ?? 25 * 1024 * 1024)) throw new Error("IMAGE_TAGGER_INPUT_TOO_LARGE");
+    if (payloadBytes > (this.config.maxBytes ?? 25 * 1024 * 1024)) {
+      const error = new ImageTaggerInputError("IMAGE_TAGGER_INPUT_TOO_LARGE");
+      this.emit({ payloadBytes, preprocessingMs: 0, inferenceMs: 0, modelVersion: this.config.modelVersion, outcome: "error" });
+      throw error;
+    }
     const preprocessingStarted = performance.now();
     let data: Buffer; let info: { width: number };
     try {
