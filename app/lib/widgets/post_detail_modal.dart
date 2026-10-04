@@ -21,49 +21,38 @@ class PostDetailModal extends StatelessWidget {
     required VoidCallback onDelete,
     required ValueChanged<String> onRemoveFromAlbum,
   }) {
-    final wide = MediaQuery.sizeOf(context).width >= 760;
-    final content = PostDetailModal(
+    final child = PostDetailModal(
       post: post,
       onDelete: onDelete,
       onRemoveFromAlbum: onRemoveFromAlbum,
     );
-    if (wide) {
-      return showDialog<void>(
-        context: context,
-        builder: (_) => Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.all(32),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640, maxHeight: 760),
-            child: content,
-          ),
-        ),
-      );
-    }
-    return showModalBottomSheet<void>(
+    return showDialog<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => content,
+      barrierDismissible: true,
+      barrierColor: Colors.black54,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(20),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640, maxHeight: 760),
+          child: child,
+        ),
+      ),
     );
   }
 
   @override
-  Widget build(BuildContext context) => DraggableScrollableSheet(
-    initialChildSize: .78,
-    maxChildSize: .94,
-    minChildSize: .5,
-    builder: (context, controller) => Material(
-      color: AppColors.paper,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(5),
-        side: BorderSide(color: AppColors.ink, width: 2),
-      ),
-      child: ListView(
-        controller: controller,
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+  Widget build(BuildContext context) => Material(
+    color: AppColors.paper,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(5),
+      side: const BorderSide(color: AppColors.ink, width: 2),
+    ),
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(child: Container(width: 44, height: 5, color: AppColors.ink)),
           Align(
             alignment: Alignment.topRight,
             child: IconButton(
@@ -92,7 +81,7 @@ class PostDetailModal extends StatelessWidget {
               child: Image.network(
                 post.thumbnailUrl!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _textPreview(),
+                errorBuilder: (_, _, _) => _textPreview(),
               ),
             ),
           if (post.mediaKind == MediaKind.text) _textPreview(),
@@ -104,30 +93,6 @@ class PostDetailModal extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(post.description),
-          if (post.mediaKind == MediaKind.video ||
-              post.mediaKind == MediaKind.carousel)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Row(
-                children: [
-                  IconButton(
-                    tooltip: 'Play media',
-                    onPressed: () {},
-                    icon: const Icon(Icons.play_arrow),
-                  ),
-                  IconButton(
-                    tooltip: 'Previous media',
-                    onPressed: () {},
-                    icon: const Icon(Icons.chevron_left),
-                  ),
-                  IconButton(
-                    tooltip: 'Next media',
-                    onPressed: () {},
-                    icon: const Icon(Icons.chevron_right),
-                  ),
-                ],
-              ),
-            ),
           const SizedBox(height: 20),
           const Text(
             'IN ALBUMS',

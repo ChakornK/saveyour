@@ -113,6 +113,7 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       bottomNavigationBar: NavigationBar(
+        backgroundColor: AppColors.paper,
         selectedIndex: _tab,
         onDestinationSelected: (value) => setState(() => _tab = value),
         destinations: const [
