@@ -33,14 +33,13 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
     String? token,
     Map<String, String>? extraHeaders,
   }) async {
-    final session = token == null && sessions is! SecureSessionStore
-        ? await sessions.read()
-        : null;
+    final session = token == null ? await sessions.read() : null;
     final authToken = token ?? session?.token;
     final headers = <String, String>{
       'accept': 'application/json',
       if (body != null) 'content-type': 'application/json',
       if (authToken != null) 'authorization': 'Bearer $authToken',
+      if (session?.accountId != null) 'x-owner-id': session!.accountId,
       ...?extraHeaders,
     };
     final uri = Uri.parse('$baseUrl$path').replace(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'domain/models.dart';
 import 'services/api_client.dart';
+import 'services/session_store.dart';
 import 'services/share_intent.dart';
 import 'theme/app_theme.dart';
 import 'widgets/post_card.dart';
@@ -29,20 +30,22 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final _repository = ApiClient();
+  final _sessionStore = SecureSessionStore();
+  late final ApiClient _repository;
+
+  @override
+  void initState() {
+    super.initState();
+    _repository = ApiClient(sessions: _sessionStore);
+    _load();
+    _shareIntents.start();
+    _shareSubscription = _shareIntents.links.listen(_showSaveDialogForUrl);
+  }
   final _searchController = TextEditingController();
   final _shareIntents = ShareIntentService();
   StreamSubscription<String>? _shareSubscription;
   LoadState<List<SavedPost>> _state = const LoadState(LoadStatus.initial);
   int _tab = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-    _shareIntents.start();
-    _shareSubscription = _shareIntents.links.listen(_showSaveDialogForUrl);
-  }
 
   @override
   void dispose() {
