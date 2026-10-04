@@ -37,7 +37,10 @@ import { captureRoutes } from "./modules/capture/routes";
 import { captureApiRoutes } from "./modules/capture/api-routes";
 import { CaptureService } from "./modules/capture/service";
 import { InMemoryCaptureRepository } from "./modules/capture/repository";
-import { AuthService } from "./modules/auth/service";
+import {
+  AuthService,
+  GoogleWebCryptoVerifier,
+} from "./modules/auth/service";
 import { createAuthRoutes } from "./modules/auth/routes";
 import {
   InMemoryAccountRepository,
@@ -142,6 +145,9 @@ export const createApp = (config: AppConfig) => {
   const authService = new AuthService(
     new InMemoryAccountRepository(),
     new InMemorySessionRepository(),
+    new GoogleWebCryptoVerifier(
+      "https://www.googleapis.com/oauth2/v3/certs",
+    ),
   );
   const captureService = new CaptureService(new InMemoryCaptureRepository());
   const app = new Elysia({ name: "saveyour-tech-api" })
