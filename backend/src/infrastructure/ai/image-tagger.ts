@@ -19,6 +19,10 @@ export class OnnxClipImageTagger implements ImageTagger {
   private text?: Promise<ort.InferenceSession>;
   constructor(private readonly config: ClipTaggerConfig) {}
   private emit(metrics: ImageTaggerMetrics) { this.config.onMetrics?.(metrics); }
+  private errorMetrics(payloadBytes: number, startedAt: number, error: unknown): never {
+    this.emit({ payloadBytes, preprocessingMs: performance.now() - startedAt, inferenceMs: 0, modelVersion: this.config.modelVersion, outcome: "error" });
+    throw error;
+  }
   private async withTimeout<T>(work: Promise<T>): Promise<T> {
     const timeoutMs = this.config.timeoutMs ?? 10_000;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -52,7 +56,10 @@ export class OnnxClipImageTagger implements ImageTagger {
     if (!input.mimeType.startsWith("image/") || !payloadBytes) { this.emit({ payloadBytes, preprocessingMs: 0, inferenceMs: 0, modelVersion: this.config.modelVersion, outcome: "empty" }); return []; }
     if (payloadBytes > (this.config.maxBytes ?? 25 * 1024 * 1024)) throw new Error("IMAGE_TAGGER_INPUT_TOO_LARGE");
     const preprocessingStarted = performance.now();
-    const { data, info } = await sharp(input.bytes).resize(224, 224, { fit: "cover" }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    let data: Buffer; let info: { width: number };
+    try {
+      ({ data, info } = await sharp(input.bytes).resize(224, 224, { fit: "cover" }).removeAlpha().raw().toBuffer({ resolveWithObject: true }));
+    } catch (error) { return this.errorMetrics(payloadBytes, preprocessingStarted, error); }
     const pixels = new Float32Array(3 * 224 * 224);
     for (let y = 0; y < 224; y++) for (let x = 0; x < 224; x++) {
       const source = (y * info.width + x) * 3;
@@ -67,7 +74,10 @@ export class OnnxClipImageTagger implements ImageTagger {
     const inputName = session.inputNames.find((name) => name === "pixel_values");
     const outputName = session.outputNames.find((name) => name === "image_embeds");
     if (!inputName || !outputName) throw new Error("ONNX vision model contract is invalid");
-    const output = await this.withTimeout(session.run({ [inputName]: new ort.Tensor("float32", pixels, [1, 3, 224, 224]) }));
+    let output: Record<string, ort.Tensor>;
+    try {
+      output = await this.withTimeout(session.run({ [inputName]: new ort.Tensor("float32", pixels, [1, 3, 224, 224]) }));
+    } catch (error) { return this.errorMetrics(payloadBytes, preprocessingStarted, error); }
     const embedding = Array.from(output[outputName].data as Float32Array);
     const norm = Math.sqrt(embedding.reduce((sum, value) => sum + value * value, 0)) || 1;
     const imageEmbedding = embedding.map((value) => value / norm);
