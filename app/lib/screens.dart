@@ -238,9 +238,15 @@ class _NestedNavigationBar extends StatelessWidget {
 }
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key, required this.repository, this.auth});
+  const ProfilePage({
+    super.key,
+    required this.repository,
+    this.auth,
+    this.onLoggedOut,
+  });
   final ProfileRepository repository;
   final GoogleAuthService? auth;
+  final VoidCallback? onLoggedOut;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -265,7 +271,11 @@ class _ProfilePageState extends State<ProfilePage> {
     } else {
       await widget.repository.logOut();
     }
-    if (mounted) setState(() {});
+    if (widget.onLoggedOut != null) {
+      widget.onLoggedOut!();
+    } else if (mounted) {
+      setState(() {});
+    }
   }
 
   @override

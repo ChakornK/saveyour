@@ -67,6 +67,11 @@ class _HomePageState extends State<HomePage> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _logOut() async {
+    await _auth.signOut();
+    if (mounted) setState(() {});
+  }
+
   Future<void> _signIn() async {
     try {
       await _auth.signIn();
@@ -141,7 +146,11 @@ class _HomePageState extends State<HomePage> {
                 ? _homeContent()
                 : _tab == 1
                 ? AlbumsPage(repository: _repository, onOpenPost: _openPost)
-                : ProfilePage(repository: _repository, auth: _auth),
+                : ProfilePage(
+                    repository: _repository,
+                    auth: _auth,
+                    onLoggedOut: _logOut,
+                  ),
           ),
         ],
       ),
