@@ -71,7 +71,7 @@ export const createApp = (config: AppConfig) => {
     .use(rateLimit(new InMemoryRateLimitStore(), 120, 60_000))
     .use(authentication({ required: config.authRequired, tokens: config.authTokens }))
     .onError(({ code, error, set }) => { const requestId = crypto.randomUUID(); const status = code === 'NOT_FOUND' ? 404 : code === 'VALIDATION' ? 400 : 500; set.status = status; const detail = error instanceof Error ? error.message : undefined; return { code: code === 'NOT_FOUND' ? 'NOT_FOUND' : code === 'VALIDATION' ? 'VALIDATION_ERROR' : 'INTERNAL_ERROR', message: code === 'NOT_FOUND' ? 'Route not found' : code === 'VALIDATION' ? 'Request validation failed' : 'An unexpected error occurred', requestId, ...(config.appEnv !== 'production' && detail ? { detail } : {}) } })
-    .use(healthRoutes(config, mongo))
+    .use(healthRoutes())
     .use(analysisRoutes(orchestrator, repository, metrics))
     .use(captureRoutes(source, orchestrator))
     .use(searchRoutes(searchService, new TagSuggestionService(derivedStore)))

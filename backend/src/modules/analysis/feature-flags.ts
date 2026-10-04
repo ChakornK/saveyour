@@ -6,7 +6,8 @@ export interface AnalysisFeatureFlags {
 }
 
 export const analysisFeatureFlags = (config: AppConfig): AnalysisFeatureFlags => ({
-  ...config.integrationFlags,
+  cortexAnalysis: config.integrationFlags?.cortexAnalysis ?? true,
+  cortexTranscription: config.integrationFlags?.cortexTranscription ?? true,
 });
 
 export const assertStageEnabled = (flags: AnalysisFeatureFlags, stage: "transcription" | "analysis") => {
