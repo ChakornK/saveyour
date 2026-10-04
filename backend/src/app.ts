@@ -35,6 +35,8 @@ import { InMemoryRateLimitStore, rateLimit } from "./modules/limits/rate-limit";
 import { authentication } from "./modules/auth/auth";
 import { captureRoutes } from "./modules/capture/routes";
 import { captureApiRoutes } from "./modules/capture/api-routes";
+import { CaptureService } from "./modules/capture/service";
+import { InMemoryCaptureRepository } from "./modules/capture/repository";
 import { AuthService } from "./modules/auth/service";
 import { createAuthRoutes } from "./modules/auth/routes";
 import {
@@ -42,6 +44,7 @@ import {
   InMemorySessionRepository,
 } from "./modules/auth/service";
 import { initializeSearchIndex } from "./infrastructure/search/index-init";
+import { profileRoutes } from "./modules/profile/routes";
 
 export const createApp = (config: AppConfig) => {
   const useProduction = config.appEnv === "production";
@@ -140,6 +143,7 @@ export const createApp = (config: AppConfig) => {
     new InMemoryAccountRepository(),
     new InMemorySessionRepository(),
   );
+  const captureService = new CaptureService(new InMemoryCaptureRepository());
   const app = new Elysia({ name: "saveyour-tech-api" })
     .use(
       openapi({
@@ -185,6 +189,8 @@ export const createApp = (config: AppConfig) => {
     })
     .use(healthRoutes())
     .use(createAuthRoutes(config, authService))
+    .use(captureApiRoutes(captureService, authService))
+    .use(profileRoutes(authService, captureService))
     .use(analysisRoutes(orchestrator, repository, metrics))
     .use(captureRoutes(source, orchestrator))
     .use(searchRoutes(searchService, new TagSuggestionService(derivedStore)))

@@ -185,10 +185,21 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
       throw const ApiException(null, 'Album endpoints are not available yet.');
 
   @override
-  Future<UserProfile> getProfile() => throw const ApiException(
-    null,
-    'Profile endpoints are not available yet.',
-  );
+  Future<UserProfile> getProfile() async {
+    final body = await _request('GET', '/profile');
+    if (body is! Map<String, dynamic>) {
+      throw const ApiException(null, 'The server returned an invalid profile.');
+    }
+    return UserProfile(
+      displayName: body['displayName'] as String? ?? 'SaveYour user',
+      username: body['username'] as String? ?? '',
+      avatarUrl: body['avatarUrl'] as String?,
+      savedPostCount: (body['savedPostCount'] as num?)?.toInt() ?? 0,
+      albumCount: (body['albumCount'] as num?)?.toInt() ?? 0,
+      sourceCount: (body['sourceCount'] as num?)?.toInt() ?? 0,
+      tagCount: (body['tagCount'] as num?)?.toInt() ?? 0,
+    );
+  }
 
   @override
   Future<void> logOut() => _sessions.clear();

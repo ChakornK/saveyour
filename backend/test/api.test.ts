@@ -79,6 +79,39 @@ describe("API routes", () => {
     expect(response.status).toBe(401);
   });
 
+  test("serves authenticated capture and profile routes", async () => {
+    const app = createApp(loadConfig({ APP_ENV: "test" }));
+    const capture = new CaptureService(new InMemoryCaptureRepository());
+    const auth = new AuthService();
+    const claims: GoogleClaims = {
+      issuer: "test",
+      audience: "test",
+      nonce: "test",
+      subject: "route-user",
+      email: "route@example.com",
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    };
+    const token = (await auth.signIn(claims, {
+      issuer: "test",
+      audience: "test",
+      nonce: "test",
+    }, 3600)).token;
+    expect(capture).toBeDefined();
+    const captureResponse = await request(app, "/capture", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ url: "https://www.instagram.com/p/example" }),
+    });
+    expect(captureResponse.status).toBe(201);
+    const profileResponse = await request(app, "/profile", {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(profileResponse.status).toBe(200);
+  });
+
   test("requires owner scope for search", async () => {
     const response = await request(
       createApp(loadConfig({ APP_ENV: "test" })),
