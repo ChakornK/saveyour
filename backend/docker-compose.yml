@@ -47,6 +47,9 @@ services:
       MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017}
       SEAWEEDFS_ENDPOINT: ${SEAWEEDFS_ENDPOINT:-http://seaweedfs:8333}
       SEAWEEDFS_BUCKET: ${SEAWEEDFS_BUCKET:-saveyour-tech}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      SEARCH_URL: ${SEARCH_URL:-http://meilisearch:7700}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-local-development-key}
       YTDLP_BINARY: ${YTDLP_BINARY:-/usr/local/bin/yt-dlp}
       YTDLP_TEMP_DIR: ${YTDLP_TEMP_DIR:-/tmp/saveyour-media}
       MEDIA_MAX_BYTES: ${MEDIA_MAX_BYTES:-26214400}
