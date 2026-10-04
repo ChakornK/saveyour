@@ -1,6 +1,6 @@
 import { Elysia } from 'elysia'
 
-export const requireOwner = (headers: Record<string, string | undefined>, set: { status?: number }) => {
+export const requireOwner = (headers: Record<string, string | undefined>, set: { status?: number | string }) => {
   const ownerId = headers['x-owner-id']
   if (!ownerId || ownerId.length > 128) { set.status = 401; return undefined }
   return ownerId
