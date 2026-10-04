@@ -9,6 +9,7 @@ abstract final class AppColors {
   static const blue = Color(0xFF7A83FF);
   static const red = Color(0xFFFF4D50);
   static const sky = Color(0xFF0099FF);
+  static const overlay = Color(0xCC000000);
 }
 
 abstract final class AppTheme {

@@ -34,24 +34,24 @@ class PostDetailModal extends StatelessWidget {
       onAddToAlbum: onAddToAlbum,
       listAlbums: listAlbums,
     );
-    return showModalBottomSheet<void>(
+    return showDialog<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black54,
-      builder: (_) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640, maxHeight: 760),
-            child: DecoratedBox(
-              decoration: const BoxDecoration(
-                boxShadow: [
-                  BoxShadow(color: AppColors.ink, offset: Offset(6, 6)),
-                ],
-              ),
-              child: child,
+      barrierDismissible: true,
+      barrierColor: AppColors.overlay,
+      builder: (_) => Dialog(
+        insetPadding: const EdgeInsets.all(20),
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640, maxHeight: 760),
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              boxShadow: [
+                BoxShadow(color: AppColors.ink, offset: Offset(6, 6)),
+              ],
             ),
+            child: child,
           ),
         ),
       ),
