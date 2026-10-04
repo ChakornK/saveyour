@@ -8,10 +8,15 @@ class FakeSql implements SqlExecutor {
   async query<T = Record<string, unknown>>(sql: string): Promise<T[]> {
     this.calls.push(sql);
     if (sql.startsWith("SELECT event_id")) return [];
-    if (sql.includes("SELECT lease_version")) return [{ lease_version: 1, created_at: "now", lease_expires_at: "later" }] as T[];
+    if (sql.includes("SELECT lease_version"))
+      return [
+        { lease_version: 1, created_at: "now", lease_expires_at: "later" },
+      ] as T[];
     return [];
   }
-  async transaction<T>(work: (tx: SqlExecutor) => Promise<T>): Promise<T> { return work(this); }
+  async transaction<T>(work: (tx: SqlExecutor) => Promise<T>): Promise<T> {
+    return work(this);
+  }
 }
 
 test("SQL outbox persists terminal delivery state", async () => {
@@ -23,6 +28,11 @@ test("SQL outbox persists terminal delivery state", async () => {
 
 test("SQL leases return the current lease version", async () => {
   const db = new FakeSql();
-  const lease = await new SqlLeaseStore(db).acquire("job-1", "worker-1", "now", "later");
+  const lease = await new SqlLeaseStore(db).acquire(
+    "job-1",
+    "worker-1",
+    "now",
+    "later",
+  );
   expect(lease?.version).toBe(1);
 });

@@ -10,7 +10,10 @@ export interface TiDBConfig {
 export class HttpTiDBExecutor implements SqlExecutor {
   constructor(private readonly config: TiDBConfig) {}
 
-  async query<T = Record<string, unknown>>(sql: string, params: unknown[] = []): Promise<T[]> {
+  async query<T = Record<string, unknown>>(
+    sql: string,
+    params: unknown[] = [],
+  ): Promise<T[]> {
     const response = await fetch(`${this.config.url}/query`, {
       method: "POST",
       headers: {

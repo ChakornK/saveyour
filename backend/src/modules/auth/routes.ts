@@ -18,7 +18,10 @@ export const createAuthRoutes = (config: AppConfig, auth: AuthService) =>
         set.status = 201;
         return result;
       },
-      { body: t.Object({ idToken: t.String({ minLength: 1 }) }), parse: "json" },
+      {
+        body: t.Object({ idToken: t.String({ minLength: 1 }) }),
+        parse: "json",
+      },
     )
     .get("/auth/me", ({ headers }) => ({
       accountId: auth.authenticate(

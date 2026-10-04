@@ -24,12 +24,16 @@ describe("API routes", () => {
       email: "cursor@example.com",
       expiresAt: Math.floor(Date.now() / 1000) + 3600,
     };
-    const token = (await auth.signIn(
-      claims,
-      { issuer: "test", audience: "test", nonce: "test" },
-      3600,
-    )).token;
-    const result = await service.list({ ownerId: "owner-1" }, "not-json").catch((error) => error);
+    const token = (
+      await auth.signIn(
+        claims,
+        { issuer: "test", audience: "test", nonce: "test" },
+        3600,
+      )
+    ).token;
+    const result = await service
+      .list({ ownerId: "owner-1" }, "not-json")
+      .catch((error) => error);
     expect(result).toMatchObject({ code: "URL_INVALID", field: "cursor" });
     expect(token).toBeString();
   });

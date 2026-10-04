@@ -19,7 +19,11 @@ test("metrics retain correlation IDs and operational counters", () => {
   metrics.leaseConflict("corr-1");
   metrics.retryExhausted("corr-1");
   metrics.outboxBacklog(3);
-  expect(metrics.latencies[0]).toEqual({ stage: "transcription", milliseconds: 42, correlationId: "corr-1" });
+  expect(metrics.latencies[0]).toEqual({
+    stage: "transcription",
+    milliseconds: 42,
+    correlationId: "corr-1",
+  });
   expect(metrics.leaseConflicts).toBe(1);
   expect(metrics.retriesExhausted).toBe(1);
   expect(metrics.backlog).toBe(3);

@@ -120,10 +120,15 @@ export const loadConfig = (
       ? { seaweedfsSecretKey: env.SEAWEEDFS_SECRET_KEY }
       : {}),
     ...(env.GOOGLE_CLIENT_ID ? { googleClientId: env.GOOGLE_CLIENT_ID } : {}),
-    ...(env.GOOGLE_CLIENT_SECRET ? { googleClientSecret: env.GOOGLE_CLIENT_SECRET } : {}),
-    ...(env.GOOGLE_REDIRECT_URI ? { googleRedirectUri: env.GOOGLE_REDIRECT_URI } : {}),
+    ...(env.GOOGLE_CLIENT_SECRET
+      ? { googleClientSecret: env.GOOGLE_CLIENT_SECRET }
+      : {}),
+    ...(env.GOOGLE_REDIRECT_URI
+      ? { googleRedirectUri: env.GOOGLE_REDIRECT_URI }
+      : {}),
     googleIssuer: env.GOOGLE_ISSUER ?? "https://accounts.google.com",
-    googleJwksUrl: env.GOOGLE_JWKS_URL ?? "https://www.googleapis.com/oauth2/v3/certs",
+    googleJwksUrl:
+      env.GOOGLE_JWKS_URL ?? "https://www.googleapis.com/oauth2/v3/certs",
     authRequired:
       env.AUTH_REQUIRED === "true" ||
       parseEnvironment(env.APP_ENV) === "production",

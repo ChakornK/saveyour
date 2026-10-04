@@ -161,7 +161,10 @@ export interface CaptureInput {
   ownerId: string;
   canonicalUrl: string;
   media: MediaReference[];
-  analysis: Omit<AnalysisJobRequest, "jobId" | "ownerId" | "postId" | "mediaAssetIds"> & {
+  analysis: Omit<
+    AnalysisJobRequest,
+    "jobId" | "ownerId" | "postId" | "mediaAssetIds"
+  > & {
     schemaVersion: IntegrationSchemaVersion;
   };
 }
@@ -172,14 +175,20 @@ export interface TiDBIntegrationPort {
   reclaimExpiredLeases?(now: string): Promise<number>;
   claimLease(jobId: string, workerId: string): Promise<JobLease>;
   loadJobContext(jobId: string): Promise<JobContext>;
-  persistCompletion(completion: AnalysisCompletion, lease: JobLease): Promise<void>;
+  persistCompletion(
+    completion: AnalysisCompletion,
+    lease: JobLease,
+  ): Promise<void>;
   markFailure(failure: ClassifiedFailure, lease: JobLease): Promise<void>;
 }
 
 export interface AnalysisCoordinator {
   enqueue(input: CaptureInput): Promise<JobReceipt>;
   process(jobId: string, workerId: string): Promise<AnalysisCompletion>;
-  persistResults(completion: AnalysisCompletion, lease: JobLease): Promise<void>;
+  persistResults(
+    completion: AnalysisCompletion,
+    lease: JobLease,
+  ): Promise<void>;
 }
 
 export class SchemaCompatibilityError extends Error {
@@ -189,8 +198,11 @@ export class SchemaCompatibilityError extends Error {
   }
 }
 
-export function assertSupportedSchema(version: number): asserts version is IntegrationSchemaVersion {
-  if (version !== integrationSchemaVersion) throw new SchemaCompatibilityError(version);
+export function assertSupportedSchema(
+  version: number,
+): asserts version is IntegrationSchemaVersion {
+  if (version !== integrationSchemaVersion)
+    throw new SchemaCompatibilityError(version);
 }
 
 export const completionKey = (jobId: string, leaseVersion: number) =>

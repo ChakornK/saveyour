@@ -19,7 +19,10 @@ export interface NormalizedProviderResult {
 }
 
 export interface IntegrationProvider {
-  run(stage: IntegrationStage, context: JobContext): Promise<NormalizedProviderResult>;
+  run(
+    stage: IntegrationStage,
+    context: JobContext,
+  ): Promise<NormalizedProviderResult>;
 }
 
 export class IntegrationCoordinatorImpl implements AnalysisCoordinator {
@@ -41,7 +44,10 @@ export class IntegrationCoordinatorImpl implements AnalysisCoordinator {
     const lease = await this.tidb.claimLease(jobId, workerId);
     const context = await this.tidb.loadJobContext(jobId);
     if (context.jobId !== jobId) throw new Error("Job context mismatch");
-    if (context.ownerId !== context.media[0]?.ownerId && context.media.length > 0) {
+    if (
+      context.ownerId !== context.media[0]?.ownerId &&
+      context.media.length > 0
+    ) {
       throw new Error("Job media ownership mismatch");
     }
     assertSupportedSchema(context.schemaVersion);
@@ -72,7 +78,8 @@ export class IntegrationCoordinatorImpl implements AnalysisCoordinator {
         const failure: ClassifiedFailure = {
           category: "transient",
           code: "PROVIDER_STAGE_FAILED",
-          message: error instanceof Error ? error.message : "Provider stage failed",
+          message:
+            error instanceof Error ? error.message : "Provider stage failed",
           retryable: true,
           attempt: 1,
           correlationId: context.correlationId,
@@ -101,12 +108,16 @@ export class IntegrationCoordinatorImpl implements AnalysisCoordinator {
     };
   }
 
-  persistResults(completion: AnalysisCompletion, lease: JobLease): Promise<void> {
+  persistResults(
+    completion: AnalysisCompletion,
+    lease: JobLease,
+  ): Promise<void> {
     assertSupportedSchema(completion.schemaVersion);
     if (
       completion.leaseVersion !== lease.version ||
       completion.jobId !== lease.jobId ||
-      completion.completionIdempotencyKey !== completionKey(completion.jobId, lease.version)
+      completion.completionIdempotencyKey !==
+        completionKey(completion.jobId, lease.version)
     ) {
       const failure: ClassifiedFailure = {
         category: "stale-lease",

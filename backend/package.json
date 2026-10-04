@@ -14,6 +14,7 @@
   "dependencies": {
     "@elysiajs/cors": "latest",
     "@elysiajs/openapi": "latest",
+    "@scalar/types": "^0.22.4",
     "elysia": "latest",
     "mongodb": "^7.7.0",
     "redis": "^6.3.0"

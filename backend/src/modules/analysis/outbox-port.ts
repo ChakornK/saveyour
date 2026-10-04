@@ -13,8 +13,16 @@ export interface DurableOutboxRecord {
 export interface DurableOutbox {
   claim(limit: number): Promise<DurableOutboxRecord[]>;
   markDelivered(eventId: string): Promise<void>;
-  markRetry(eventId: string, attempts: number, nextAttemptAt: string): Promise<void>;
-  markDeadLetter(eventId: string, attempts: number, error: string): Promise<void>;
+  markRetry(
+    eventId: string,
+    attempts: number,
+    nextAttemptAt: string,
+  ): Promise<void>;
+  markDeadLetter(
+    eventId: string,
+    attempts: number,
+    error: string,
+  ): Promise<void>;
 }
 
 export interface JobReferenceQueue {
