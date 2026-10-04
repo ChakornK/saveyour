@@ -154,22 +154,25 @@ void main() {
     expect(find.byType(PostDetailModal), findsNothing);
   });
 
-  testWidgets('share intent emits native and initial links', (tester) async {
-    final messenger = tester.binding.defaultBinaryMessenger;
-    final channel = const MethodChannel('tech.saveyour.SaveYour/share_intent');
-    messenger.setMockMethodCallHandler(
-      channel,
-      (call) async =>
-          call.method == 'initialSharedText' ? 'https://initial.test' : null,
+  test('share intent emits native and initial links', () async {
+    Future<void> Function(String text)? handler;
+    var unregistered = false;
+    final service = ShareIntentService(
+      readInitial: () async => 'https://initial.test',
+      registerHandler: (value) => handler = value,
+      unregisterHandler: () => unregistered = true,
     );
-    final service = ShareIntentService();
     final links = <String>[];
     final subscription = service.links.listen(links.add);
     await service.start();
-    expect(links, isEmpty);
+    await Future<void>.delayed(Duration.zero);
+    expect(links, ['https://initial.test']);
+    await handler!('https://shared.test');
+    await Future<void>.delayed(Duration.zero);
+    expect(links, ['https://initial.test', 'https://shared.test']);
     await subscription.cancel();
     service.dispose();
-    messenger.setMockMethodCallHandler(channel, null);
+    expect(unregistered, isTrue);
   });
 
   testWidgets('wide home renders navigation rail', (tester) async {
