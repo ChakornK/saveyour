@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../domain/models.dart';
+import 'auth.dart';
 import 'session_store.dart';
 
 class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
@@ -117,6 +118,28 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
           ? _postFromJson(value)
           : _postFromSearchJson((value['document'] as Map).cast<String, dynamic>());
     }).toList();
+  }
+
+  Future<Session> exchangeGoogle(GoogleAuthorization authorization) async {
+    final result = await _request('POST', '/auth/google', body: {
+      'issuer': authorization.issuer,
+      'audience': authorization.audience,
+      'nonce': authorization.nonce,
+      'claims': authorization.claims,
+    });
+    final account = result['account'] as Map<String, dynamic>?;
+    final token = result['token'] as String?;
+    final accountId = account?['id'] as String?;
+    if (token == null || accountId == null) {
+      throw const ApiException(null, 'The server returned an invalid session.');
+    }
+    final session = Session(
+      token: token,
+      accountId: accountId,
+      email: account?['email'] as String?,
+    );
+    await sessions.write(session);
+    return session;
   }
 
   @override

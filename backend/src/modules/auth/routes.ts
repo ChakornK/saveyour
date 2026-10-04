@@ -11,9 +11,9 @@ export const createAuthRoutes = (config: AppConfig, auth: AuthService) =>
         const result = auth.signIn(
           claims,
           {
-            issuer: body.issuer,
-            audience: body.audience,
-            nonce: body.nonce,
+            issuer: config.googleIssuer,
+          audience: config.googleAudience ?? config.googleClientId,
+          nonce: body.nonce,
           },
           config.sessionTtlSeconds ?? 60 * 60 * 24 * 30,
         );
@@ -23,7 +23,7 @@ export const createAuthRoutes = (config: AppConfig, auth: AuthService) =>
       {
         body: t.Object({
           issuer: t.String(),
-          audience: t.String(),
+          audience: t.Optional(t.String()),
           nonce: t.String(),
           claims: t.Unknown(),
         }),

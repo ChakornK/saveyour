@@ -1,4 +1,5 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
+import type { AppConfig } from "../../config/env";
 import type { OwnerScope } from "../capture/types";
 
 export interface GoogleClaims {
@@ -44,11 +45,11 @@ export class AuthService {
 
   verifyClaims(
     claims: GoogleClaims,
-    expected: { issuer: string; audience: string; nonce: string },
+    expected: { issuer: string; audience?: string; nonce: string },
   ): void {
     if (
       claims.issuer !== expected.issuer ||
-      claims.audience !== expected.audience ||
+      (expected.audience !== undefined && claims.audience !== expected.audience) ||
       claims.nonce !== expected.nonce ||
       !claims.subject ||
       !claims.email
@@ -63,7 +64,7 @@ export class AuthService {
 
   signIn(
     claims: GoogleClaims,
-    expected: { issuer: string; audience: string; nonce: string },
+    expected: { issuer: string; audience?: string; nonce: string },
     ttlSeconds: number,
   ) {
     this.verifyClaims(claims, expected);
@@ -99,5 +100,16 @@ export class AuthService {
   revoke(token: string): void {
     const session = this.sessions.get(hashToken(token));
     if (session) session.revokedAt = Date.now();
+  }
+
+  static expectedGoogleClaims(
+    config: Pick<AppConfig, "googleIssuer" | "googleClientId" | "googleAudience">,
+    nonce: string,
+  ) {
+    return {
+      issuer: config.googleIssuer,
+      audience: config.googleAudience ?? config.googleClientId,
+      nonce,
+    };
   }
 }
