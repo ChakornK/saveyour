@@ -83,7 +83,7 @@ export class AnalysisPipeline implements StageHandler {
       for (const asset of source.media ?? [])
         if (asset.mimeType.startsWith("video/") || asset.mimeType.startsWith("audio/")) await this.media.extractAudio(asset);
     }
-    if (stage === "describe" || stage === "normalize") {
+    if (stage === "describe") {
       const image = source.media?.[0];
       const localTags = image && this.imageTagger ? await this.imageTagger.tagImage(image) : [];
       const result = localTags.length
