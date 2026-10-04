@@ -4,14 +4,14 @@ import type {
   JobContext,
   JobLease,
   JobReceipt,
-  TiDBIntegrationPort,
+  AnalysisPersistencePort,
 } from "../src/modules/analysis/integration-contract";
 import {
   IntegrationCoordinatorImpl,
   type IntegrationProvider,
 } from "../src/modules/analysis/coordinator";
 
-class FakeTiDB implements TiDBIntegrationPort {
+class FakePersistence implements AnalysisPersistencePort {
   persisted: AnalysisCompletion[] = [];
   async createCaptureTransaction(): Promise<JobReceipt> {
     return {
@@ -77,8 +77,8 @@ const provider: IntegrationProvider = {
 };
 
 test("runs a job through lease, provider, and persistence", async () => {
-  const tidb = new FakeTiDB();
-  const coordinator = new IntegrationCoordinatorImpl(tidb, provider);
+  const persistence = new FakePersistence();
+  const coordinator = new IntegrationCoordinatorImpl(persistence, provider);
   const completion = await coordinator.process("job-1", "worker-1");
   await coordinator.persistResults(completion, {
     jobId: "job-1",
@@ -87,6 +87,6 @@ test("runs a job through lease, provider, and persistence", async () => {
     acquiredAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 60_000).toISOString(),
   });
-  expect(tidb.persisted).toHaveLength(1);
-  expect(tidb.persisted[0]?.results[0]?.transcript).toBeUndefined();
+  expect(persistence.persisted).toHaveLength(1);
+  expect(persistence.persisted[0]?.results[0]?.transcript).toBeUndefined();
 });

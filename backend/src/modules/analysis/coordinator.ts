@@ -10,7 +10,7 @@ import {
   type JobLease,
   type JobContext,
   type JobReceipt,
-  type TiDBIntegrationPort,
+  type AnalysisPersistencePort,
 } from "./integration-contract";
 
 export interface NormalizedProviderResult {
@@ -27,7 +27,7 @@ export interface IntegrationProvider {
 
 export class IntegrationCoordinatorImpl implements AnalysisCoordinator {
   constructor(
-    private readonly tidb: TiDBIntegrationPort,
+    private readonly persistence: AnalysisPersistencePort,
     private readonly provider: IntegrationProvider,
     private readonly now: () => string = () => new Date().toISOString(),
   ) {}
@@ -37,12 +37,12 @@ export class IntegrationCoordinatorImpl implements AnalysisCoordinator {
     if (!input.ownerId || !input.canonicalUrl) {
       throw new Error("Owner scope and canonical URL are required");
     }
-    return this.tidb.createCaptureTransaction(input);
+    return this.persistence.createCaptureTransaction(input);
   }
 
   async process(jobId: string, workerId: string): Promise<AnalysisCompletion> {
-    const lease = await this.tidb.claimLease(jobId, workerId);
-    const context = await this.tidb.loadJobContext(jobId);
+    const lease = await this.persistence.claimLease(jobId, workerId);
+    const context = await this.persistence.loadJobContext(jobId);
     if (context.jobId !== jobId) throw new Error("Job context mismatch");
     if (
       context.ownerId !== context.media[0]?.ownerId &&
@@ -127,8 +127,8 @@ export class IntegrationCoordinatorImpl implements AnalysisCoordinator {
         attempt: 1,
         correlationId: completion.correlationId,
       };
-      return this.tidb.markFailure(failure, lease);
+      return this.persistence.markFailure(failure, lease);
     }
-    return this.tidb.persistCompletion(completion, lease);
+    return this.persistence.persistCompletion(completion, lease);
   }
 }

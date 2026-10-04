@@ -14,10 +14,10 @@ export class MongoAccountRepository implements AccountRepository {
   constructor(private readonly db: MongoDatabase) {}
   async findByGoogleSubject(subject: string) {
     return (
-      this.collection().findOne({
+      (await this.collection().findOne({
         provider: "google",
         googleSubject: subject,
-      }) ?? undefined
+      })) ?? undefined
     );
   }
   async create(account: Account) {

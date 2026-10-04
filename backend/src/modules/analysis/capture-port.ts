@@ -2,7 +2,7 @@ import {
   captureIdempotencyKey,
   type CaptureInput,
   type JobReceipt,
-  type TiDBIntegrationPort,
+  type AnalysisPersistencePort,
 } from "./integration-contract";
 
 export interface CaptureTransactionStore {
@@ -12,7 +12,7 @@ export interface CaptureTransactionStore {
   findCaptureByIdempotencyKey(key: string): Promise<JobReceipt | undefined>;
 }
 
-export class CaptureTransactionPort implements TiDBIntegrationPort {
+export class CaptureTransactionPort implements AnalysisPersistencePort {
   constructor(private readonly store: CaptureTransactionStore) {}
 
   async createCaptureTransaction(input: CaptureInput): Promise<JobReceipt> {

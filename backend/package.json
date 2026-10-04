@@ -12,16 +12,17 @@
     "format": "prettier --write src test"
   },
   "dependencies": {
-    "@elysiajs/cors": "latest",
-    "@elysiajs/openapi": "latest",
+    "@elysiajs/cors": "^1.4.2",
+    "@elysiajs/openapi": "^1.4.16",
     "@scalar/types": "^0.22.4",
-    "elysia": "latest",
+    "elysia": "^1.4.30",
     "mongodb": "^7.7.0",
     "redis": "^6.3.0"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "prettier": "latest",
-    "typescript": "latest"
+    "@scalar/types": "^0.22.4",
+    "@types/bun": "^1.4.2",
+    "prettier": "^3.9.9",
+    "typescript": "7.0.2"
   }
 }

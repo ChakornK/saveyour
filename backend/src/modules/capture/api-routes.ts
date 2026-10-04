@@ -18,7 +18,7 @@ export const captureApiRoutes = (service: CaptureService, auth: AuthService) =>
     .post(
       "/capture",
       async ({ body, headers, set }) => {
-        const scope = scopeFromHeaders(auth, headers.authorization);
+        const scope = await scopeFromHeaders(auth, headers.authorization);
         const result = await service.capture(
           {
             rawUrl: body.url,
@@ -43,7 +43,7 @@ export const captureApiRoutes = (service: CaptureService, auth: AuthService) =>
       "/captured-posts",
       async ({ headers, query }) =>
         service.list(
-          scopeFromHeaders(auth, headers.authorization),
+          await scopeFromHeaders(auth, headers.authorization),
           query.cursor,
           query.limit ? Number(query.limit) : 20,
         ),
@@ -58,7 +58,7 @@ export const captureApiRoutes = (service: CaptureService, auth: AuthService) =>
       "/captured-posts/:postId",
       async ({ headers, params }) =>
         service.get(
-          scopeFromHeaders(auth, headers.authorization),
+          await scopeFromHeaders(auth, headers.authorization),
           params.postId,
         ),
       { params: t.Object({ postId: t.String() }) },
@@ -67,7 +67,7 @@ export const captureApiRoutes = (service: CaptureService, auth: AuthService) =>
       "/captured-posts/:postId",
       async ({ headers, params }) =>
         service.delete(
-          scopeFromHeaders(auth, headers.authorization),
+          await scopeFromHeaders(auth, headers.authorization),
           params.postId,
         ),
       { params: t.Object({ postId: t.String() }) },

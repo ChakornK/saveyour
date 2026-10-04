@@ -4,13 +4,12 @@ import { InMemoryIntegrationMetrics } from "../src/modules/analysis/metrics";
 
 test("readiness reports failed dependencies", async () => {
   const health = await checkIntegrationHealth({
-    tidb: async () => false,
-    redis: async () => true,
+    redis: async () => false,
     seaweedfs: async () => true,
     cortex: async () => true,
   });
   expect(health.ready).toBe(false);
-  expect(health.dependencies.tidb).toBe(false);
+  expect(health.dependencies.redis).toBe(false);
 });
 
 test("metrics retain correlation IDs and operational counters", () => {

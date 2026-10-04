@@ -169,7 +169,7 @@ export interface CaptureInput {
   };
 }
 
-export interface TiDBIntegrationPort {
+export interface AnalysisPersistencePort {
   createCaptureTransaction(input: CaptureInput): Promise<JobReceipt>;
   renewLease?(lease: JobLease, expiresAt: string): Promise<JobLease>;
   reclaimExpiredLeases?(now: string): Promise<number>;

@@ -1,5 +1,4 @@
 export interface IntegrationDependencies {
-  tidb: () => Promise<boolean>;
   redis: () => Promise<boolean>;
   seaweedfs: () => Promise<boolean>;
   cortex: () => Promise<boolean>;

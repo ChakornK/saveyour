@@ -23,7 +23,10 @@ import { MongoDerivedPostStore } from "./infrastructure/mongo/derived-post-store
 import { MongoPostSource } from "./infrastructure/mongo/post-source";
 import { MongoOutbox } from "./infrastructure/mongo/outbox";
 import { MeilisearchIndex } from "./infrastructure/search/meilisearch-index";
+import { SearchEventDelivery } from "./infrastructure/search/event-index-delivery";
 import { GeminiProvider } from "./infrastructure/ai/gemini-provider";
+import { SnowflakeCortexClient } from "./infrastructure/ai/cortex-client";
+import { CortexAnalysisProvider } from "./infrastructure/ai/cortex-provider";
 import { InMemoryJobQueue } from "./modules/analysis/queue";
 import { QueuePublisher } from "./modules/analysis/queue-publisher";
 import { RedisClientAdapter } from "./infrastructure/queue/redis-client";
@@ -32,33 +35,9 @@ import { InMemoryRateLimitStore, rateLimit } from "./modules/limits/rate-limit";
 import { authentication } from "./modules/auth/auth";
 import { captureRoutes } from "./modules/capture/routes";
 import { initializeSearchIndex } from "./infrastructure/search/index-init";
-import { SeaweedFsMediaStore } from "./infrastructure/media/seaweedfs-store";
-import { InMemoryMediaStore } from "./modules/media/store";
-import { createMediaRoutes } from "./modules/media/routes";
-import {
-  AuthError,
-  AuthService,
-  GoogleWebCryptoVerifier,
-} from "./modules/auth/service";
-import { CaptureError } from "./modules/capture/types";
-import { createAuthRoutes } from "./modules/auth/routes";
-import { MongoMediaAssetRepository } from "./modules/media/repository";
-import { InMemoryCaptureRepository } from "./modules/capture/repository";
-import { MongoCaptureRepository } from "./modules/capture/persistent-repository";
-import { CaptureService } from "./modules/capture/service";
-import { captureApiRoutes } from "./modules/capture/api-routes";
-import { RedisMediaDownloadQueue } from "./modules/media/download-queue";
-import { checkIntegrationHealth } from "./modules/analysis/health";
 
 export const createApp = (config: AppConfig) => {
   const useProduction = config.appEnv === "production";
-  const authService = new AuthService(
-    undefined,
-    undefined,
-    config.googleClientId
-      ? new GoogleWebCryptoVerifier(config.googleJwksUrl)
-      : undefined,
-  );
   const mongo = useProduction
     ? new MongoDatabase({
         uri: config.mongoUri,
@@ -86,45 +65,10 @@ export const createApp = (config: AppConfig) => {
     ? new MeilisearchIndex(searchConfig)
     : new InMemorySearchIndex();
   const searchService = new SearchService(searchIndex);
-  const captureRepository =
-    useProduction && mongo
-      ? new MongoCaptureRepository(mongo)
-      : new InMemoryCaptureRepository();
-  const mediaRepository =
-    useProduction && mongo ? new MongoMediaAssetRepository(mongo) : undefined;
-  const mediaStore =
-    useProduction && config.seaweedfsEndpoint && mediaRepository
-      ? new SeaweedFsMediaStore(
-          {
-            endpoint: config.seaweedfsEndpoint,
-            bucket: config.seaweedfsBucket ?? "saveyour-tech",
-            accessKey: config.seaweedfsAccessKey,
-            secretKey: config.seaweedfsSecretKey,
-            maxBytes: config.mediaMaxBytes ?? 25 * 1024 * 1024,
-          },
-          mediaRepository,
-        )
-      : new InMemoryMediaStore(config.mediaMaxBytes ?? 25 * 1024 * 1024);
   const redis =
     useProduction && config.redisUrl
       ? new RedisClientAdapter(config.redisUrl)
       : undefined;
-  const mediaQueue = redis ? new RedisMediaDownloadQueue(redis) : undefined;
-  const captureService = new CaptureService(
-    captureRepository,
-    mediaQueue
-      ? async (post, scope) => {
-          await mediaQueue.enqueue({
-            id: crypto.randomUUID(),
-            url: post.canonicalUrl,
-            postId: post.id,
-            scope,
-            attempts: 0,
-            maxAttempts: 3,
-          });
-        }
-      : undefined,
-  );
   const initialize = async () => {
     if (redis) await redis.connect();
     if (mongo) {
@@ -134,22 +78,46 @@ export const createApp = (config: AppConfig) => {
         new MongoDerivedPostStore(mongo).ensureIndexes(),
         new MongoPostSource(mongo).ensureIndexes(),
         new MongoOutbox(mongo).ensureIndexes(),
-        new MongoMediaAssetRepository(mongo).ensureIndexes(),
-        new MongoCaptureRepository(mongo).ensureIndexes(),
       ]);
     }
     await initializeSearchIndex(searchIndex, searchConfig);
   };
   const metrics = new InMemoryAnalysisMetrics();
   const provider =
-    useProduction && config.geminiApiKey
-      ? new GeminiProvider({
-          apiKey: config.geminiApiKey,
-          model: config.geminiModel,
-          timeoutMs: config.geminiTimeoutMs,
-          maxAttempts: config.geminiMaxAttempts,
-        })
-      : new FakeAiProvider();
+    useProduction &&
+    config.snowflakeAccount &&
+    config.snowflakeUser &&
+    config.snowflakeWarehouse &&
+    config.snowflakeDatabase &&
+    config.snowflakeSchema &&
+    (config.snowflakePassword || config.snowflakeToken)
+      ? new CortexAnalysisProvider(
+          new SnowflakeCortexClient({
+            account: config.snowflakeAccount,
+            user: config.snowflakeUser,
+            password: config.snowflakePassword,
+            token: config.snowflakeToken,
+            warehouse: config.snowflakeWarehouse,
+            database: config.snowflakeDatabase,
+            schema: config.snowflakeSchema,
+            endpoint: config.snowflakeEndpoint,
+            timeoutMs: config.cortexTimeoutMs ?? 10_000,
+          }),
+          {
+            model: config.cortexModel ?? "claude-3-5-sonnet",
+            embeddingModel:
+              config.cortexEmbeddingModel ?? "snowflake-arctic-embed-m-v1.5",
+            maxAttempts: config.cortexMaxAttempts ?? 3,
+          },
+        )
+      : useProduction && config.geminiApiKey
+        ? new GeminiProvider({
+            apiKey: config.geminiApiKey,
+            model: config.geminiModel,
+            timeoutMs: config.geminiTimeoutMs,
+            maxAttempts: config.geminiMaxAttempts,
+          })
+        : new FakeAiProvider();
   const pipeline = new AnalysisPipeline(source, derivedStore, provider);
   const queue = redis
     ? new RedisJobQueue(redis, repository)
@@ -174,13 +142,7 @@ export const createApp = (config: AppConfig) => {
         origin: config.corsOrigins.length === 0 ? true : config.corsOrigins,
       }),
     )
-    .use(
-      rateLimit(
-        new InMemoryRateLimitStore(),
-        config.captureRateLimit ?? 30,
-        60_000,
-      ),
-    )
+    .use(rateLimit(new InMemoryRateLimitStore(), 120, 60_000))
     .use(
       authentication({
         required: config.authRequired,
@@ -188,21 +150,11 @@ export const createApp = (config: AppConfig) => {
       }),
     )
     .onError(({ code, error, set }) => {
-      if (error instanceof AuthError) {
-        set.status = 401;
-        return { code: error.code, message: error.message };
-      }
-      if (error instanceof CaptureError) {
-        set.status = error.code === "POST_NOT_FOUND" ? 404 : 422;
-        return {
-          code: error.code,
-          message: error.message,
-          ...(error.field ? { field: error.field } : {}),
-        };
-      }
       const requestId = crypto.randomUUID();
-      set.status =
+      const status =
         code === "NOT_FOUND" ? 404 : code === "VALIDATION" ? 400 : 500;
+      set.status = status;
+      const detail = error instanceof Error ? error.message : undefined;
       return {
         code:
           code === "NOT_FOUND"
@@ -217,32 +169,13 @@ export const createApp = (config: AppConfig) => {
               ? "Request validation failed"
               : "An unexpected error occurred",
         requestId,
-        ...(config.appEnv !== "production" && error instanceof Error
-          ? { detail: error.message }
-          : {}),
+        ...(config.appEnv !== "production" && detail ? { detail } : {}),
       };
     })
-    .use(
-      healthRoutes(async () =>
-        checkIntegrationHealth({
-          tidb: async () =>
-            !config.integrationFlags.tidbPersistence || Boolean(config.tidbUrl),
-          redis: async () => !useProduction || Boolean(redis),
-          seaweedfs: async () =>
-            !useProduction || Boolean(config.seaweedfsEndpoint),
-          cortex: async () =>
-            !config.integrationFlags.cortexAnalysis ||
-            !useProduction ||
-            Boolean(config.geminiApiKey),
-        }),
-      ),
-    )
+    .use(healthRoutes())
     .use(analysisRoutes(orchestrator, repository, metrics))
     .use(captureRoutes(source, orchestrator))
     .use(searchRoutes(searchService, new TagSuggestionService(derivedStore)))
-    .use(createAuthRoutes(config, authService))
-    .use(captureApiRoutes(captureService, authService))
-    .use(createMediaRoutes(authService, mediaStore, mediaQueue))
     .get("/", () => ({
       name: "saveyour.tech API",
       status: "ok" as const,

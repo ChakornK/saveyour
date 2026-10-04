@@ -2,7 +2,7 @@ import {
   completionKey,
   type AnalysisCompletion,
   type JobLease,
-  type TiDBIntegrationPort,
+  type AnalysisPersistencePort,
 } from "./integration-contract";
 
 export interface CompletionTransactionStore {
@@ -34,7 +34,7 @@ export class AtomicCompletionPersister {
 }
 
 export class CompletionPort implements Pick<
-  TiDBIntegrationPort,
+  AnalysisPersistencePort,
   "persistCompletion"
 > {
   constructor(private readonly persister: AtomicCompletionPersister) {}

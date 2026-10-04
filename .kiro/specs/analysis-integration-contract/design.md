@@ -2,9 +2,9 @@
 
 ## Overview
 
-This specification defines the integration layer between Snowflake Cortex media analysis and TiDB persistence/search. It owns the versioned analysis-job and result contracts, processing orchestration, queue interaction, leases, idempotency, stage transitions, atomic persistence sequencing, feature flags, and end-to-end behavior.
+This specification defines the integration layer between Snowflake Cortex media analysis and application persistence/search. It owns the versioned analysis-job and result contracts, processing orchestration, queue interaction, leases, idempotency, stage transitions, atomic persistence sequencing, feature flags, and end-to-end behavior.
 
-The integration layer does not implement Cortex function calls and does not implement TiDB SQL/repositories. It consumes `CortexAnalysisProvider` and TiDB repository/search contracts. This boundary ensures Cortex and TiDB can be delivered independently while producing one reliable capture-to-analysis-to-search workflow.
+The integration layer does not implement Cortex function calls or database-specific repositories. It consumes `CortexAnalysisProvider` and persistence/search contracts while producing one reliable capture-to-analysis-to-search workflow.
 
 ## Architecture
 
@@ -195,7 +195,7 @@ External calls never run inside a TiDB transaction. Persistence transaction incl
 ## Dependencies
 
 - Snowflake Cortex provider contract from `snowflake-cortex-media-analysis`.
-- TiDB repository and search contracts from `tidb-migration`.
+- Persistence and search repository contracts.
 - Redis queue and outbox publisher.
 - SeaweedFS object storage.
 - FFmpeg media preprocessor.

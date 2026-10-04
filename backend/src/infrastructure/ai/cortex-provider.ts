@@ -1,0 +1,373 @@
+import {
+  CortexError,
+  cortexPromptVersion,
+  cortexSchemaVersion,
+  type CortexAudioInput,
+  type CortexCapabilities,
+  type CortexClient,
+  type CortexEmbeddingResult,
+  type CortexFrameInput,
+  type CortexFramesResult,
+  type CortexImageResult,
+  type CortexMediaInput,
+  type CortexTranscriptResult,
+} from "./cortex-types";
+
+export interface CortexProviderConfig {
+  model: string;
+  embeddingModel: string;
+  maxImageBytes?: number;
+  maxAudioBytes?: number;
+  maxDurationMs?: number;
+  maxFrames?: number;
+  maxAttempts?: number;
+}
+
+const asObject = (value: unknown): Record<string, unknown> => {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new CortexError("response", "Cortex response must be an object");
+  return value as Record<string, unknown>;
+};
+const stringOrNull = (value: unknown) =>
+  value === null || value === undefined
+    ? null
+    : typeof value === "string"
+      ? value
+      : (() => {
+          throw new CortexError("response", "Expected a string");
+        })();
+const stringList = (value: unknown) =>
+  value === undefined
+    ? []
+    : Array.isArray(value) && value.every((item) => typeof item === "string")
+      ? value
+      : (() => {
+          throw new CortexError("response", "Expected a string list");
+        })();
+const retryable = (error: unknown) =>
+  error instanceof CortexError && error.category === "transient";
+const normalizeBoundedRaw = (value: unknown) =>
+  JSON.parse(
+    JSON.stringify(value, (_key, entry) =>
+      typeof entry === "string" && entry.length > 1000
+        ? `${entry.slice(0, 1000)}[TRUNCATED]`
+        : entry,
+    ),
+  );
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export class CortexAnalysisProvider {
+  private readonly metrics: Array<{
+    operation: string;
+    attempts: number;
+    latencyMs: number;
+    outcome: "success" | "failure";
+  }> = [];
+  getMetrics() {
+    return [...this.metrics];
+  }
+  private record(
+    operation: string,
+    attempts: number,
+    startedAt: number,
+    outcome: "success" | "failure",
+  ) {
+    this.metrics.push({
+      operation,
+      attempts,
+      latencyMs: Date.now() - startedAt,
+      outcome,
+    });
+    if (this.metrics.length > 1000) this.metrics.shift();
+  }
+  async describeImage(input: { content: string; mimeType?: string }) {
+    const result = await this.analyzeImage({
+      artifactUri: input.content,
+      contentType: input.mimeType ?? "text/plain",
+      sizeBytes: input.content.length,
+      ownerId: "pipeline",
+      postId: "pipeline",
+    });
+    return {
+      text: result.caption ?? result.observations.join(". "),
+      tags: result.tags,
+      provenance: {
+        provider: result.provider,
+        model: result.model,
+        promptVersion: result.promptVersion,
+        generatedAt: new Date().toISOString(),
+      },
+    };
+  }
+  async transcribe(input: { content: string; mimeType?: string }) {
+    const result = await this.transcribeAudio({
+      artifactUri: input.content,
+      contentType: input.mimeType ?? "audio/mpeg",
+      sizeBytes: input.content.length,
+      ownerId: "pipeline",
+      postId: "pipeline",
+    });
+    return {
+      segments: result.segments.map((segment) => ({
+        text: segment.text,
+        startMs: segment.startMs,
+        endMs: segment.endMs,
+      })),
+      provenance: {
+        provider: result.provider,
+        model: result.model,
+        generatedAt: new Date().toISOString(),
+      },
+    };
+  }
+  async embed(input: { content: string | string[] }) {
+    const result = await this.generateTextEmbedding({
+      entityType: "pipeline",
+      entityId: "pipeline",
+      text: Array.isArray(input.content)
+        ? input.content.join(" ")
+        : input.content,
+    });
+    return result.vector;
+  }
+
+  constructor(
+    private readonly client: CortexClient,
+    private readonly config: CortexProviderConfig,
+  ) {}
+
+  private validateMedia(input: CortexMediaInput, maxBytes: number) {
+    if (
+      !input.artifactUri ||
+      !input.contentType ||
+      input.sizeBytes < 1 ||
+      input.sizeBytes > maxBytes
+    )
+      throw new CortexError(
+        "input",
+        "Media artifact is invalid or exceeds configured size limit",
+      );
+    if (!input.contentType.includes("/"))
+      throw new CortexError("input", "Media content type is invalid");
+    if (!input.ownerId || !input.postId)
+      throw new CortexError("input", "Media ownership metadata is required");
+    if (input.promptVersion && input.promptVersion !== cortexPromptVersion)
+      throw new CortexError("input", "Unsupported prompt version");
+  }
+
+  private async call(functionName: string, args: unknown[]) {
+    const startedAt = Date.now();
+    let lastError: unknown;
+    for (
+      let attempt = 1;
+      attempt <= (this.config.maxAttempts ?? 3);
+      attempt += 1
+    ) {
+      try {
+        const result = await this.client.executeFunction(functionName, args);
+        this.record(functionName, attempt, startedAt, "success");
+        return result;
+      } catch (error) {
+        lastError = error;
+        if (!retryable(error) || attempt === (this.config.maxAttempts ?? 3)) {
+          this.record(functionName, attempt, startedAt, "failure");
+          throw error;
+        }
+        await sleep(2 ** attempt * 25);
+      }
+    }
+    this.record(
+      functionName,
+      this.config.maxAttempts ?? 3,
+      startedAt,
+      "failure",
+    );
+    throw lastError;
+  }
+
+  async analyzeImage(input: CortexMediaInput): Promise<CortexImageResult> {
+    this.validateMedia(input, this.config.maxImageBytes ?? 10_000_000);
+    const result = asObject(
+      await this.call("AI_COMPLETE", [
+        { artifactUri: input.artifactUri, promptVersion: cortexPromptVersion },
+      ]),
+    );
+    return {
+      caption: stringOrNull(result.caption),
+      tags: stringList(result.tags),
+      observations: stringList(result.observations),
+      warnings: stringList(result.warnings),
+      provider: "snowflake-cortex",
+      model: this.config.model,
+      modelVersion:
+        typeof result.modelVersion === "string"
+          ? result.modelVersion
+          : undefined,
+      schemaVersion: cortexSchemaVersion,
+      promptVersion: cortexPromptVersion,
+    };
+  }
+
+  async analyzeFrames(input: {
+    mediaAssetId: string;
+    frames: CortexFrameInput[];
+    promptVersion?: string;
+  }): Promise<CortexFramesResult> {
+    if (
+      !input.frames.length ||
+      input.frames.length > (this.config.maxFrames ?? 12)
+    )
+      throw new CortexError(
+        "input",
+        "Frame count is outside configured limits",
+      );
+    for (const frame of input.frames) {
+      if (frame.timestampMs < 0 || frame.sizeBytes < 1 || !frame.artifactUri)
+        throw new CortexError("input", "Frame metadata is invalid");
+    }
+    const result = asObject(
+      await this.call("AI_COMPLETE", [
+        { frames: input.frames, promptVersion: cortexPromptVersion },
+      ]),
+    );
+    const returned = Array.isArray(result.frames) ? result.frames : [];
+    if (returned.length !== input.frames.length)
+      throw new CortexError(
+        "response",
+        "Cortex returned an invalid frame count",
+      );
+    return {
+      frames: returned.map((item, index) => {
+        const frame = asObject(item);
+        return {
+          timestampMs: input.frames[index].timestampMs,
+          caption: stringOrNull(frame.caption),
+          tags: stringList(frame.tags),
+          observations: stringList(frame.observations),
+        };
+      }),
+      aggregateDescription: stringOrNull(result.aggregateDescription),
+      warnings: stringList(result.warnings),
+      provider: "snowflake-cortex",
+      model: this.config.model,
+      schemaVersion: cortexSchemaVersion,
+      promptVersion: cortexPromptVersion,
+    };
+  }
+
+  async transcribeAudio(
+    input: CortexAudioInput,
+  ): Promise<CortexTranscriptResult> {
+    this.validateMedia(input, this.config.maxAudioBytes ?? 50_000_000);
+    if (!input.contentType.startsWith("audio/"))
+      throw new CortexError(
+        "input",
+        "AI_TRANSCRIBE requires an audio artifact",
+      );
+    if (
+      input.durationMs !== undefined &&
+      input.durationMs > (this.config.maxDurationMs ?? 3_600_000)
+    )
+      throw new CortexError("input", "Audio duration exceeds configured limit");
+    const result = asObject(
+      await this.call("AI_TRANSCRIBE", [
+        { audioUri: input.artifactUri, languageHint: input.languageHint },
+      ]),
+    );
+    const text = typeof result.text === "string" ? result.text : "";
+    const rawSegments = Array.isArray(result.segments) ? result.segments : [];
+    const segments = rawSegments.length
+      ? rawSegments.map((item, index) => {
+          const segment = asObject(item);
+          return {
+            sequence: index,
+            startMs: typeof segment.startMs === "number" ? segment.startMs : 0,
+            endMs: typeof segment.endMs === "number" ? segment.endMs : 0,
+            text: typeof segment.text === "string" ? segment.text : "",
+            confidence:
+              typeof segment.confidence === "number"
+                ? segment.confidence
+                : undefined,
+          };
+        })
+      : [{ sequence: 0, startMs: 0, endMs: input.durationMs ?? 0, text }];
+    return {
+      language: stringOrNull(result.language),
+      text,
+      segments,
+      provider: "snowflake-cortex",
+      model: this.config.model,
+      rawProviderResult: normalizeBoundedRaw({
+        text,
+        language: result.language,
+        segments: rawSegments.slice(0, 20),
+      }),
+      schemaVersion: cortexSchemaVersion,
+    };
+  }
+
+  async generateTextEmbedding(input: {
+    entityType: string;
+    entityId: string;
+    text: string;
+  }): Promise<CortexEmbeddingResult> {
+    if (!input.text.trim())
+      throw new CortexError("input", "Embedding text cannot be empty");
+    const result = await this.call("AI_EMBED", [
+      input.text,
+      this.config.embeddingModel,
+    ]);
+    const vector = Array.isArray(result) ? result : asObject(result).vector;
+    if (
+      !Array.isArray(vector) ||
+      vector.some(
+        (value) => typeof value !== "number" || !Number.isFinite(value),
+      )
+    )
+      throw new CortexError("response", "Embedding vector is invalid");
+    return {
+      entityType: input.entityType,
+      entityId: input.entityId,
+      model: this.config.embeddingModel,
+      dimensions: vector.length,
+      vector,
+    };
+  }
+
+  async checkCapabilities(): Promise<CortexCapabilities> {
+    const functions = ["AI_COMPLETE", "AI_TRANSCRIBE", "AI_EMBED"];
+    const statuses: Record<string, boolean> = {};
+    for (const name of functions) {
+      try {
+        statuses[name] = this.client.capability
+          ? await this.client.capability(name)
+          : (await this.client.executeFunction(name, []), true);
+      } catch (error) {
+        statuses[name] = false;
+        if (
+          name === "AI_TRANSCRIBE" &&
+          error instanceof CortexError &&
+          [
+            "authentication",
+            "authorization",
+            "capability",
+            "configuration",
+          ].includes(error.category)
+        )
+          return {
+            status: "unavailable",
+            functions: statuses,
+            checkedAt: new Date().toISOString(),
+            error: error.category,
+          };
+      }
+    }
+    return {
+      status: Object.values(statuses).every(Boolean)
+        ? "available"
+        : "unavailable",
+      functions: statuses,
+      checkedAt: new Date().toISOString(),
+    };
+  }
+}

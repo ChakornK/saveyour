@@ -20,7 +20,7 @@ export const createMediaRoutes = (
     .post(
       "/media",
       async ({ headers, body, set }) => {
-        const scope = auth.authenticate(bearer(headers.authorization));
+        const scope = await auth.authenticate(bearer(headers.authorization));
         const asset = await store.put(
           {
             postId: body.postId,
@@ -37,7 +37,7 @@ export const createMediaRoutes = (
     .post(
       "/media/download",
       async ({ headers, body, set }) => {
-        const scope = auth.authenticate(bearer(headers.authorization));
+        const scope = await auth.authenticate(bearer(headers.authorization));
         if (!downloads) {
           set.status = 503;
           return {
@@ -66,7 +66,7 @@ export const createMediaRoutes = (
     .get(
       "/media/:assetId",
       async ({ headers, params }) => {
-        const scope = auth.authenticate(bearer(headers.authorization));
+        const scope = await auth.authenticate(bearer(headers.authorization));
         const result = await store.authorizeRead(params.assetId, scope);
         return new Response(result.body.buffer as ArrayBuffer, {
           headers: {

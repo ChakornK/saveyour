@@ -11,7 +11,7 @@ export const createAuthRoutes = (config: AppConfig, auth: AuthService) =>
           body.idToken,
           {
             clientId: config.googleClientId ?? "",
-            issuer: config.googleIssuer,
+            issuer: config.googleIssuer ?? "https://accounts.google.com",
           },
           config.sessionTtlSeconds ?? 2592000,
         );
@@ -23,14 +23,16 @@ export const createAuthRoutes = (config: AppConfig, auth: AuthService) =>
         parse: "json",
       },
     )
-    .get("/auth/me", ({ headers }) => ({
-      accountId: auth.authenticate(
-        headers.authorization?.replace(/^Bearer\s+/i, "") ?? "",
+    .get("/auth/me", async ({ headers }) => ({
+      accountId: (
+        await auth.authenticate(
+          headers.authorization?.replace(/^Bearer\s+/i, "") ?? "",
+        )
       ).ownerId,
     }))
-    .post("/auth/sign-out", ({ headers }) => {
+    .post("/auth/sign-out", async ({ headers }) => {
       const token = headers.authorization?.replace(/^Bearer\s+/i, "");
-      if (token) void auth.revoke(token);
+      if (token) await auth.revoke(token);
       return { status: "ok" as const };
     })
     .onError(({ error, set }) => {

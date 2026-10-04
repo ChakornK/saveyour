@@ -1,8 +1,6 @@
 import type { AppConfig } from "../../config/env";
 
 export interface AnalysisFeatureFlags {
-  tidbPersistence: boolean;
-  tidbSearch: boolean;
   cortexAnalysis: boolean;
   cortexTranscription: boolean;
 }
@@ -10,7 +8,8 @@ export interface AnalysisFeatureFlags {
 export const analysisFeatureFlags = (
   config: AppConfig,
 ): AnalysisFeatureFlags => ({
-  ...config.integrationFlags,
+  cortexAnalysis: config.integrationFlags?.cortexAnalysis ?? true,
+  cortexTranscription: config.integrationFlags?.cortexTranscription ?? true,
 });
 
 export const assertStageEnabled = (
