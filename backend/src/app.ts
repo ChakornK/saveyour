@@ -54,11 +54,6 @@ export const createApp = (config: AppConfig) => {
         database: config.mongoDatabase,
       })
     : undefined;
-  const authService = new AuthService(
-    useProduction && mongo ? new MongoAccountRepository(mongo) : new InMemoryAccountRepository(),
-    useProduction && mongo ? new MongoSessionRepository(mongo) : new InMemorySessionRepository(),
-    new GoogleWebCryptoVerifier(),
-  );
   const repository = useProduction
     ? new MongoAnalysisRepository(mongo!)
     : new InMemoryAnalysisRepository();
@@ -104,6 +99,12 @@ export const createApp = (config: AppConfig) => {
       ? new RedisClientAdapter(config.redisUrl)
       : undefined;
   const mediaQueue = redis ? new RedisMediaDownloadQueue(redis) : undefined;
+  const authService = new AuthService(
+    useProduction && mongo ? new MongoAccountRepository(mongo) : new InMemoryAccountRepository(),
+    useProduction && mongo ? new MongoSessionRepository(mongo) : new InMemorySessionRepository(),
+    new GoogleWebCryptoVerifier(),
+    redis,
+  );
   const captureService = new CaptureService(
     captureRepository,
     mediaQueue

@@ -19,6 +19,11 @@ export interface Account {
 export interface SessionRecord { id: string; accountId: string; tokenHash: string; expiresAt: number; revokedAt?: number; }
 export interface AccountRepository { findByGoogleSubject(subject: string): Promise<Account | undefined>; create(account: Account): Promise<Account>; }
 export interface SessionRepository { create(session: SessionRecord): Promise<void>; findByTokenHash(hash: string): Promise<SessionRecord | undefined>; revokeByTokenHash(hash: string, revokedAt: number): Promise<void>; ensureIndexes(): Promise<void>; }
+export interface AuthRedis {
+  set(key: string, value: string, options?: { EX: number; NX?: boolean }): Promise<string | null>;
+  get(key: string): Promise<string | null>;
+  del(key: string): Promise<number>;
+}
 export interface GoogleTokenVerifier {
   verify(token: string, expected: { clientId: string; issuer: string }): Promise<VerifiedGoogleIdentity>;
 }
@@ -40,7 +45,7 @@ export class InMemorySessionRepository implements SessionRepository {
 }
 
 export class AuthService {
-  constructor(private readonly accounts: AccountRepository = new InMemoryAccountRepository(), private readonly sessions: SessionRepository = new InMemorySessionRepository(), private readonly verifier?: GoogleTokenVerifier) {}
+  constructor(private readonly accounts: AccountRepository = new InMemoryAccountRepository(), private readonly sessions: SessionRepository = new InMemorySessionRepository(), private readonly verifier?: GoogleTokenVerifier, private readonly redis?: AuthRedis) {}
   async signIn(idToken: string, expected: { clientId: string; issuer: string }, ttlSeconds: number) {
     if (!this.verifier) throw new AuthError("AUTH_INVALID", "Google authorization is not configured");
     const identity = await this.verifier.verify(idToken, expected);
@@ -48,16 +53,30 @@ export class AuthService {
     if (!account) account = await this.accounts.create({ id: randomUUID(), provider: "google", googleSubject: identity.subject, email: identity.email.trim().toLowerCase(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
     const token = randomBytes(32).toString("base64url");
     const expiresAt = Date.now() + ttlSeconds * 1000;
-    await this.sessions.create({ id: randomUUID(), accountId: account.id, tokenHash: hashToken(token), expiresAt });
+    const session = { id: randomUUID(), accountId: account.id, tokenHash: hashToken(token), expiresAt };
+    if (this.redis) {
+      await this.redis.set(`auth:session:${session.tokenHash}`, JSON.stringify(session), {
+        EX: Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000)),
+      });
+    } else {
+      await this.sessions.create(session);
+    }
     return { account, token, expiresAt };
   }
   async authenticate(token: string): Promise<OwnerScope> {
-    const session = await this.sessions.findByTokenHash(hashToken(token));
+    const tokenHash = hashToken(token);
+    const session = this.redis
+      ? await this.redis.get(`auth:session:${tokenHash}`).then((value) => value ? JSON.parse(value) as SessionRecord : undefined)
+      : await this.sessions.findByTokenHash(tokenHash);
     if (!session) throw new AuthError("AUTH_REQUIRED", "Authentication is required");
     if (session.revokedAt || session.expiresAt <= Date.now()) throw new AuthError("AUTH_EXPIRED", "Session expired or revoked");
     return { ownerId: session.accountId };
   }
-  async revoke(token: string) { await this.sessions.revokeByTokenHash(hashToken(token), Date.now()); }
+  async revoke(token: string) {
+    const tokenHash = hashToken(token);
+    if (this.redis) await this.redis.del(`auth:session:${tokenHash}`);
+    await this.sessions.revokeByTokenHash(tokenHash, Date.now());
+  }
 }
 
 interface GoogleKey { kid: string; n: string; e: string; kty: string; alg?: string; use?: string }
