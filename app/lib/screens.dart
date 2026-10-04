@@ -64,14 +64,14 @@ class _AlbumsPageState extends State<AlbumsPage> {
         itemBuilder: (_, i) => _AlbumTile(
           album: albums[i],
           onTap: () {
-            showModalBottomSheet<void>(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (_) => AlbumDetailPage(
-                albumId: albums[i].id,
-                repository: widget.repository,
-                onOpenPost: widget.onOpenPost,
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                fullscreenDialog: false,
+                builder: (_) => AlbumDetailPage(
+                  albumId: albums[i].id,
+                  repository: widget.repository,
+                  onOpenPost: widget.onOpenPost,
+                ),
               ),
             );
           },
@@ -163,58 +163,77 @@ class _AlbumDetailPageState extends State<AlbumDetailPage> {
               .contains(search.text.toLowerCase()),
         )
         .toList();
-    return Column(
-      children: [
-        Expanded(
-          child: Scaffold(
-            appBar: AppBar(
-              title: Text(
-                d.album.name,
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
-            ),
-            body: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: TextField(
-                    controller: search,
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search),
-                      hintText: 'Search this album',
-                    ),
-                  ),
+    return Scaffold(
+      body: Column(
+        children: [
+          Expanded(
+            child: Scaffold(
+              appBar: AppBar(
+                title: Text(
+                  d.album.name,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
-                Expanded(
-                  child: GridView.builder(
+              ),
+              body: Column(
+                children: [
+                  Padding(
                     padding: const EdgeInsets.all(16),
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 300,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: .78,
-                        ),
-                    itemCount: posts.length,
-                    itemBuilder: (_, i) => PostCard(
-                      post: posts[i],
-                      onTap: () => PostDetailModal.show(
-                        context,
-                        post: posts[i],
-                        onDelete: () => Navigator.pop(context),
-                        onRemoveFromAlbum: (_) {},
+                    child: TextField(
+                      controller: search,
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.search),
+                        hintText: 'Search this album',
                       ),
                     ),
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 300,
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 16,
+                            childAspectRatio: .78,
+                          ),
+                      itemCount: posts.length,
+                      itemBuilder: (_, i) => PostCard(
+                        post: posts[i],
+                        onTap: () => PostDetailModal.show(
+                          context,
+                          post: posts[i],
+                          onDelete: () => Navigator.pop(context),
+                          onRemoveFromAlbum: (_) {},
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
+      bottomNavigationBar: _NestedNavigationBar(),
     );
   }
+}
+
+class _NestedNavigationBar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => NavigationBar(
+    selectedIndex: 1,
+    onDestinationSelected: (index) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      if (index != 1) DefaultTabController.of(context).animateTo(index);
+    },
+    destinations: const [
+      NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
+      NavigationDestination(icon: Icon(Icons.grid_view), label: 'Albums'),
+      NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile'),
+    ],
+  );
 }
 
 class ProfilePage extends StatelessWidget {
