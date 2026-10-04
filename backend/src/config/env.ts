@@ -18,6 +18,18 @@ export interface AppConfig {
   geminiMaxAttempts: number
   authRequired: boolean
   authTokens: Record<string, string>
+  snowflakeAccount?: string
+  snowflakeUser?: string
+  snowflakePassword?: string
+  snowflakeToken?: string
+  snowflakeWarehouse?: string
+  snowflakeDatabase?: string
+  snowflakeSchema?: string
+  snowflakeEndpoint?: string
+  cortexModel: string
+  cortexEmbeddingModel: string
+  cortexTimeoutMs: number
+  cortexMaxAttempts: number
 }
 
 const parseEnvironment = (value: string | undefined): AppEnvironment => {
@@ -34,12 +46,16 @@ export const loadConfig = (env: Record<string, string | undefined> = Bun.env): A
   const mongoUri = env.MONGO_URI ?? 'mongodb://127.0.0.1:27017'
   const mongoDatabase = env.MONGO_DATABASE ?? 'saveyour-tech'
   if (appEnv === 'production' && (!env.MONGO_URI || !env.MONGO_DATABASE)) throw new Error('MONGO_URI and MONGO_DATABASE are required in production')
-  if (appEnv === 'production' && (!env.REDIS_URL || !env.SEARCH_URL || !env.GEMINI_API_KEY)) throw new Error('REDIS_URL, SEARCH_URL, and GEMINI_API_KEY are required in production')
+  if (appEnv === 'production' && (!env.REDIS_URL || !env.SEARCH_URL || (!env.GEMINI_API_KEY && !env.SNOWFLAKE_ACCOUNT))) throw new Error('REDIS_URL, SEARCH_URL, and GEMINI_API_KEY or SNOWFLAKE_ACCOUNT are required in production')
   const geminiTimeoutMs = Number(env.GEMINI_TIMEOUT_MS ?? 10_000)
   const geminiMaxAttempts = Number(env.GEMINI_MAX_ATTEMPTS ?? 3)
   if (!Number.isInteger(geminiTimeoutMs) || geminiTimeoutMs < 100) throw new Error('GEMINI_TIMEOUT_MS must be at least 100')
   if (!Number.isInteger(geminiMaxAttempts) || geminiMaxAttempts < 1 || geminiMaxAttempts > 5) throw new Error('GEMINI_MAX_ATTEMPTS must be between 1 and 5')
   const authTokens = Object.fromEntries((env.AUTH_TOKENS ?? '').split(',').map((entry) => entry.split(':', 2)).filter(([token, owner]) => token && owner))
   const authRequired = env.AUTH_REQUIRED === 'true' || appEnv === 'production'
-  return { appEnv, host: env.HOST ?? '0.0.0.0', port, corsOrigins: (env.CORS_ORIGINS ?? '').split(',').map((origin) => origin.trim()).filter(Boolean), mongoUri, mongoDatabase, workerConcurrency, redisUrl: env.REDIS_URL, searchUrl: env.SEARCH_URL, searchIndex: env.SEARCH_INDEX ?? 'saveyour-posts', searchApiKey: env.SEARCH_API_KEY, geminiApiKey: env.GEMINI_API_KEY, geminiModel: env.GEMINI_MODEL ?? 'gemini-2.0-flash', geminiTimeoutMs, geminiMaxAttempts, authRequired, authTokens }
+  const cortexTimeoutMs = Number(env.CORTEX_TIMEOUT_MS ?? 10_000)
+  const cortexMaxAttempts = Number(env.CORTEX_MAX_ATTEMPTS ?? 3)
+  if (!Number.isInteger(cortexTimeoutMs) || cortexTimeoutMs < 100) throw new Error('CORTEX_TIMEOUT_MS must be at least 100')
+  if (!Number.isInteger(cortexMaxAttempts) || cortexMaxAttempts < 1 || cortexMaxAttempts > 5) throw new Error('CORTEX_MAX_ATTEMPTS must be between 1 and 5')
+  return { appEnv, host: env.HOST ?? '0.0.0.0', port, corsOrigins: (env.CORS_ORIGINS ?? '').split(',').map((origin) => origin.trim()).filter(Boolean), mongoUri, mongoDatabase, workerConcurrency, redisUrl: env.REDIS_URL, searchUrl: env.SEARCH_URL, searchIndex: env.SEARCH_INDEX ?? 'saveyour-posts', searchApiKey: env.SEARCH_API_KEY, geminiApiKey: env.GEMINI_API_KEY, geminiModel: env.GEMINI_MODEL ?? 'gemini-2.0-flash', geminiTimeoutMs, geminiMaxAttempts, authRequired, authTokens, snowflakeAccount: env.SNOWFLAKE_ACCOUNT, snowflakeUser: env.SNOWFLAKE_USER, snowflakePassword: env.SNOWFLAKE_PASSWORD, snowflakeToken: env.SNOWFLAKE_TOKEN, snowflakeWarehouse: env.SNOWFLAKE_WAREHOUSE, snowflakeDatabase: env.SNOWFLAKE_DATABASE, snowflakeSchema: env.SNOWFLAKE_SCHEMA, snowflakeEndpoint: env.SNOWFLAKE_ENDPOINT, cortexModel: env.CORTEX_MODEL ?? 'claude-3-5-sonnet', cortexEmbeddingModel: env.CORTEX_EMBEDDING_MODEL ?? 'snowflake-arctic-embed-m-v1.5', cortexTimeoutMs, cortexMaxAttempts }
 }
