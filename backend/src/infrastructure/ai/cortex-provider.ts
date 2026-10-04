@@ -10,7 +10,16 @@ export interface CortexProviderConfig {
   maxAttempts?: number
 }
 
-const asObject = (value: unknown): Record<string, unknown> => { if (!value || typeof value !== 'object' || Array.isArray(value)) throw new CortexError('response', 'Cortex response must be an object'); return value as Record<string, unknown> }
+const asObject = (value: unknown): Record<string, unknown> => {
+  if (typeof value === 'string') {
+    const match = value.match(/\{[\s\S]*\}/)
+    try { value = JSON.parse(match?.[0] ?? value) } catch {
+      return { caption: value, tags: [], observations: [], warnings: [] }
+    }
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new CortexError('response', 'Cortex response must be an object')
+  return value as Record<string, unknown>
+}
 const stringOrNull = (value: unknown) => value === null || value === undefined ? null : typeof value === 'string' ? value : (() => { throw new CortexError('response', 'Expected a string') })()
 const stringList = (value: unknown) => value === undefined ? [] : Array.isArray(value) && value.every((item) => typeof item === 'string') ? value : (() => { throw new CortexError('response', 'Expected a string list') })()
 const retryable = (error: unknown) => error instanceof CortexError && error.category === 'transient'
