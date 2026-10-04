@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:http/http.dart' as http;
 
@@ -187,6 +188,10 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
   @override
   Future<UserProfile> getProfile() async {
     final body = await _request('GET', '/profile');
+    developer.log(
+      'PROFILE API RESPONSE: ${jsonEncode(body)}',
+      name: 'saveyour.api',
+    );
     if (body is! Map<String, dynamic>) {
       throw const ApiException(null, 'The server returned an invalid profile.');
     }
