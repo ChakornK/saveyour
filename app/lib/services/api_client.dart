@@ -40,9 +40,13 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
     String path, {
     Map<String, dynamic>? body,
     Map<String, String>? query,
+    Map<String, String>? extraHeaders,
   }) async {
     final headers = await _headers(
-      extra: body == null ? null : {'content-type': 'application/json'},
+      extra: {
+        if (body != null) 'content-type': 'application/json',
+        ...?extraHeaders,
+      },
     );
     final uri = Uri.parse(
       _joinUrl(baseUrl, path),
@@ -118,6 +122,21 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
   }
 
   @override
+  Future<CaptureReceipt> capture(String url, {String? idempotencyKey}) async {
+    final body = await _request(
+      'POST',
+      '/capture',
+      body: {'url': url},
+      extraHeaders: {
+        if (idempotencyKey != null) 'idempotency-key': idempotencyKey,
+      },
+    );
+    if (body is! Map<String, dynamic>) {
+      throw const ApiException(null, 'The server returned an invalid capture.');
+    }
+    return CaptureReceipt.fromJson(body);
+  }
+
   Future<void> saveLink(String url) async {
     await _request('POST', '/capture', body: {'url': url});
   }
@@ -199,6 +218,24 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
     (item) => item.name == value,
     orElse: () => MediaKind.text,
   );
+}
+
+class CaptureReceipt {
+  const CaptureReceipt({required this.postId, this.analysisStatus});
+
+  final String postId;
+  final String? analysisStatus;
+
+  factory CaptureReceipt.fromJson(Map<String, dynamic> json) {
+    final postId = json['postId'];
+    if (postId is! String || postId.isEmpty) {
+      throw const ApiException(null, 'The server returned an invalid capture.');
+    }
+    return CaptureReceipt(
+      postId: postId,
+      analysisStatus: json['analysisStatus'] as String?,
+    );
+  }
 }
 
 class ApiException implements Exception {
