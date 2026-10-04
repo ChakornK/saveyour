@@ -30,6 +30,7 @@ Implement and verify a native ONNX image-tagging provider, integrate it with the
 - [x] 5. Integrate local tagging into the worker
   - Wire `OnnxClipImageTagger` into `AnalysisPipeline`.
   - Keep Gemini as hosted description fallback while local tagging remains available.
+  - Confirmed the current production description path still prefers Gemini; local CLIP remains fallback/tagging support.
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
 - [x] 6. Correct model-output compatibility
@@ -44,7 +45,7 @@ Implement and verify a native ONNX image-tagging provider, integrate it with the
   - Add fixture assertions for cat, rabbit, board game, and reel images.
   - _Requirements: 3.4, 4.4, 5.2, 7.3_
 
-- [x] 8. Run full validation
+- [ ] 8. Run full validation
   - Run Bun typecheck and tests.
   - Build the worker image and confirm model provisioning.
   - Run live social-media fixtures through terminal status.
