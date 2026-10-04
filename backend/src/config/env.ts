@@ -26,10 +26,10 @@ export interface AppConfig {
   snowflakeDatabase?: string
   snowflakeSchema?: string
   snowflakeEndpoint?: string
-  cortexModel: string
-  cortexEmbeddingModel: string
-  cortexTimeoutMs: number
-  cortexMaxAttempts: number
+  cortexModel?: string
+  cortexEmbeddingModel?: string
+  cortexTimeoutMs?: number
+  cortexMaxAttempts?: number
 }
 
 const parseEnvironment = (value: string | undefined): AppEnvironment => {

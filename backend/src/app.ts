@@ -22,6 +22,8 @@ import { MongoOutbox } from './infrastructure/mongo/outbox'
 import { MeilisearchIndex } from './infrastructure/search/meilisearch-index'
 import { SearchEventDelivery } from './infrastructure/search/event-index-delivery'
 import { GeminiProvider } from './infrastructure/ai/gemini-provider'
+import { SnowflakeCortexClient } from './infrastructure/ai/cortex-client'
+import { CortexAnalysisProvider } from './infrastructure/ai/cortex-provider'
 import { InMemoryJobQueue } from './modules/analysis/queue'
 import { QueuePublisher } from './modules/analysis/queue-publisher'
 import { RedisClientAdapter } from './infrastructure/queue/redis-client'
@@ -55,7 +57,11 @@ export const createApp = (config: AppConfig) => {
     await initializeSearchIndex(searchIndex, searchConfig)
   }
   const metrics = new InMemoryAnalysisMetrics()
-  const provider = useProduction && config.geminiApiKey ? new GeminiProvider({ apiKey: config.geminiApiKey, model: config.geminiModel, timeoutMs: config.geminiTimeoutMs, maxAttempts: config.geminiMaxAttempts }) : new FakeAiProvider()
+  const provider = useProduction && config.snowflakeAccount && config.snowflakeUser && config.snowflakeWarehouse && config.snowflakeDatabase && config.snowflakeSchema && (config.snowflakePassword || config.snowflakeToken)
+    ? new CortexAnalysisProvider(new SnowflakeCortexClient({ account: config.snowflakeAccount, user: config.snowflakeUser, password: config.snowflakePassword, token: config.snowflakeToken, warehouse: config.snowflakeWarehouse, database: config.snowflakeDatabase, schema: config.snowflakeSchema, endpoint: config.snowflakeEndpoint, timeoutMs: config.cortexTimeoutMs ?? 10_000 }), { model: config.cortexModel ?? 'claude-3-5-sonnet', embeddingModel: config.cortexEmbeddingModel ?? 'snowflake-arctic-embed-m-v1.5', maxAttempts: config.cortexMaxAttempts ?? 3 })
+    : useProduction && config.geminiApiKey
+      ? new GeminiProvider({ apiKey: config.geminiApiKey, model: config.geminiModel, timeoutMs: config.geminiTimeoutMs, maxAttempts: config.geminiMaxAttempts })
+      : new FakeAiProvider()
   const pipeline = new AnalysisPipeline(source, derivedStore, provider)
   const queue = redis ? new RedisJobQueue(redis, repository) : new InMemoryJobQueue(repository)
   const orchestrator = new AnalysisOrchestrator(repository, pipeline, 3, undefined, new QueuePublisher(queue))
