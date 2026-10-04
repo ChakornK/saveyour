@@ -22,7 +22,8 @@ export class MongoAnalysisRepository implements AnalysisRepository {
     await this.jobs.createIndex({ status: 1, updatedAt: 1 });
   }
   async save(job: AnalysisJob) {
-    await this.jobs.replaceOne({ idempotencyKey: job.idempotencyKey }, job, {
+    const { _id, ...document } = job as AnalysisJob & { _id?: unknown };
+    await this.jobs.replaceOne({ idempotencyKey: job.idempotencyKey }, document, {
       upsert: true,
     });
     return structuredClone(job);
