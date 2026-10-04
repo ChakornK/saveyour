@@ -40,6 +40,13 @@ describe('CortexAnalysisProvider', () => {
     expect(attempts).toBe(3)
   })
 
+  test('records attempts and outcome metrics', async () => {
+    const client = new FakeCortexClient(() => ({ caption: 'ok', tags: [], observations: [], warnings: [] }))
+    const provider = new CortexAnalysisProvider(client, config)
+    await provider.analyzeImage(image)
+    expect(provider.getMetrics()).toMatchObject([{ operation: 'AI_COMPLETE', attempts: 1, outcome: 'success' }])
+  })
+
   test('does not retry capability errors', async () => {
     let attempts = 0
     const client = new FakeCortexClient(() => { attempts += 1; throw new CortexError('capability', 'AI_TRANSCRIBE unavailable') })
