@@ -205,7 +205,9 @@ export class AuthService {
     return { ownerId: session.accountId };
   }
   async getAccount(accountId: string) {
-    return (await this.accounts.findById?.(accountId)) ?? undefined;
+    const account = await this.accounts.findById?.(accountId);
+    if (account) return account;
+    return (await this.accounts.findByGoogleSubject(accountId)) ?? undefined;
   }
 
   async revoke(token: string) {
