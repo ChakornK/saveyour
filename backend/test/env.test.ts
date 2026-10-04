@@ -1,21 +1,34 @@
-import { describe, expect, test } from "bun:test";
-import { loadConfig } from "../src/config/env";
+import { describe, expect, test } from 'bun:test'
+import { loadConfig } from '../src/config/env'
 
-describe("loadConfig", () => {
-  test("loads defaults", () => {
+describe('loadConfig', () => {
+  test('loads defaults', () => {
     expect(loadConfig({})).toEqual({
-      appEnv: "development",
-      host: "0.0.0.0",
+      appEnv: 'development',
+      host: '0.0.0.0',
       port: 3000,
       corsOrigins: [],
-      mongoUri: "mongodb://127.0.0.1:27017",
-      mongoDatabase: "saveyour-tech",
+      mongoUri: 'mongodb://127.0.0.1:27017',
+      mongoDatabase: 'saveyour-tech',
       workerConcurrency: 2,
       redisUrl: undefined,
+      seaweedfsEndpoint: undefined,
+      seaweedfsBucket: undefined,
+      seaweedfsAccessKey: undefined,
+      seaweedfsSecretKey: undefined,
+      mediaMaxBytes: 25 * 1024 * 1024,
+      ytDlpBinary: 'yt-dlp',
+      ytDlpTempDir: '/tmp/saveyour-tech',
+      requestTimeoutMs: 10000,
+      integrationFlags: { cortexAnalysis: true, cortexTranscription: true },
+      googleClientId: undefined,
+      googleIssuer: 'https://accounts.google.com',
+      sessionTtlSeconds: 2592000,
       searchUrl: undefined,
       searchApiKey: undefined,
-      searchIndex: "saveyour-posts",
-      geminiModel: "gemini-2.0-flash",
+      searchIndex: 'saveyour-posts',
+      geminiApiKey: undefined,
+      geminiModel: 'gemini-2.0-flash',
       geminiTimeoutMs: 10000,
       geminiMaxAttempts: 3,
       authRequired: false,
@@ -24,44 +37,23 @@ describe("loadConfig", () => {
       snowflakeUser: undefined,
       snowflakePassword: undefined,
       snowflakeToken: undefined,
+      snowflakeTokenType: 'oauth',
       snowflakeWarehouse: undefined,
       snowflakeDatabase: undefined,
       snowflakeSchema: undefined,
       snowflakeEndpoint: undefined,
-      cortexModel: "claude-3-5-sonnet",
-      cortexEmbeddingModel: "snowflake-arctic-embed-m-v1.5",
-      cortexTimeoutMs: 10000,
-      cortexMaxAttempts: 3,
-      googleClientId: undefined,
-      googleIssuer: "https://accounts.google.com",
-      geminiApiKey: undefined,
-      integrationFlags: {
-        cortexAnalysis: true,
-        cortexTranscription: true,
-      },
-      mediaMaxBytes: 26214400,
-      requestTimeoutMs: 10000,
-      seaweedfsAccessKey: undefined,
-      seaweedfsBucket: undefined,
-      seaweedfsEndpoint: undefined,
-      seaweedfsSecretKey: undefined,
-      sessionTtlSeconds: 2592000,
-      ytDlpBinary: "yt-dlp",
-      ytDlpTempDir: "/tmp/saveyour-tech",
-    });
-  });
+      cortexModel: 'claude-3-5-sonnet',
+      cortexEmbeddingModel: 'snowflake-arctic-embed-m-v1.5',
+      cortexTimeoutMs: 120000,
+      cortexMaxAttempts: 3
+    })
+  })
 
-  test("parses comma-separated origins", () => {
-    expect(
-      loadConfig({
-        PORT: "4100",
-        HOST: "127.0.0.1",
-        CORS_ORIGINS: "http://a, http://b",
-      }),
-    ).toMatchObject({
+  test('parses comma-separated origins', () => {
+    expect(loadConfig({ PORT: '4100', HOST: '127.0.0.1', CORS_ORIGINS: 'http://a, http://b' })).toMatchObject({
       port: 4100,
-      host: "127.0.0.1",
-      corsOrigins: ["http://a", "http://b"],
-    });
-  });
-});
+      host: '127.0.0.1',
+      corsOrigins: ['http://a', 'http://b']
+    })
+  })
+})

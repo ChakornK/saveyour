@@ -36,14 +36,25 @@ export class MetadataSourceAdapter implements SourceAdapter {
         status: "limited",
       };
     const html = await response.text();
-    const mediaUrls = [
+    const videoUrls = [
       ...html.matchAll(
-        /<meta[^>]+(?:property|name)=["'](?:og:image|og:video|twitter:image)["'][^>]+content=["']([^"']+)["']/gi,
+        /<meta[^>]+(?:property|name)=["']og:video(?::url)?["'][^>]+content=["']([^"']+)["']/gi,
       ),
+      ...html.matchAll(/https?:\\?\/\\?\/[^"'\\s]+\.(?:mp4|mov|webm)(?:\?[^"'\\s]*)?/gi),
     ]
-      .map((match) => match[1])
-      .filter(Boolean)
-      .slice(0, 20);
+      .map((match) => match[1] ?? match[0])
+      .map((value) => value.replaceAll("\\u0026", "&").replaceAll("&amp;", "&"))
+      .filter((value) => /^https:\/\//i.test(value));
+    const imageUrls = [
+      ...html.matchAll(
+        /<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]+content=["']([^"']+)["']/gi,
+      ),
+      ...html.matchAll(/https?:\\?\/\\?\/[^"'\\s]+\.(?:jpg|jpeg|png|webp)(?:\?[^"'\\s]*)?/gi),
+    ]
+      .map((match) => match[1] ?? match[0])
+      .map((value) => value.replaceAll("\\u0026", "&").replaceAll("&amp;", "&"))
+      .filter((value) => /^https:\/\//i.test(value));
+    const mediaUrls = [...new Set(videoUrls.length ? videoUrls : imageUrls)].slice(0, 20);
     const title = html.match(
       /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i,
     )?.[1];

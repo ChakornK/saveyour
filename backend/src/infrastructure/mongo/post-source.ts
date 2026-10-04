@@ -19,10 +19,15 @@ export class MongoPostSource implements PostSource {
     return post ? structuredClone(post) : undefined;
   }
   async save(post: AcceptedPost) {
-    await this.posts.replaceOne(
+    const { _id, ...document } = post as AcceptedPost & { _id?: unknown };
+    const existing = await this.posts.findOne(
       { postId: post.postId, version: post.version },
-      post,
-      { upsert: true },
+      { projection: { _id: 1 } },
     );
+    if (existing) {
+      await this.posts.updateOne({ _id: existing._id }, { $set: document });
+    } else {
+      await this.posts.insertOne(document);
+    }
   }
 }

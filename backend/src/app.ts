@@ -55,6 +55,9 @@ import { albumRoutes } from "./modules/albums/routes";
 import { AlbumService } from "./modules/albums/service";
 import { InMemoryAlbumRepository } from "./modules/albums/repository";
 import { MongoAlbumRepository } from "./infrastructure/mongo/album-repository";
+import { MongoMediaAssetRepository } from "./modules/media/repository";
+import { SeaweedFsMediaStore } from "./infrastructure/media/seaweedfs-store";
+import { CaptureMediaWorkflow } from "./modules/capture/media-workflow";
 
 export const createApp = (config: AppConfig) => {
   const useProduction = config.appEnv === "production";
@@ -74,6 +77,25 @@ export const createApp = (config: AppConfig) => {
   const source = useProduction
     ? new MongoPostSource(mongo!)
     : new InMemoryPostSource();
+  const mediaRepository = useProduction
+    ? new MongoMediaAssetRepository(mongo!)
+    : undefined;
+  const mediaStore =
+    useProduction && mediaRepository && config.seaweedfsEndpoint
+      ? new SeaweedFsMediaStore(
+          {
+            endpoint: config.seaweedfsEndpoint,
+            bucket: config.seaweedfsBucket ?? "saveyour-tech",
+            accessKey: config.seaweedfsAccessKey,
+            secretKey: config.seaweedfsSecretKey,
+            maxBytes: config.mediaMaxBytes ?? 25 * 1024 * 1024,
+          },
+          mediaRepository,
+        )
+      : undefined;
+  const mediaWorkflow = mediaStore
+    ? new CaptureMediaWorkflow(mediaStore)
+    : undefined;
   const searchConfig =
     useProduction && config.searchUrl
       ? {
@@ -103,6 +125,7 @@ export const createApp = (config: AppConfig) => {
         new MongoAccountRepository(mongo).ensureIndexes(),
         new MongoSessionRepository(mongo).ensureIndexes(),
         new MongoAlbumRepository(mongo).ensureIndexes(),
+        mediaRepository?.ensureIndexes(),
       ]);
     }
     await initializeSearchIndex(searchIndex, searchConfig);
@@ -122,6 +145,7 @@ export const createApp = (config: AppConfig) => {
             user: config.snowflakeUser,
             password: config.snowflakePassword,
             token: config.snowflakeToken,
+            tokenType: config.snowflakeTokenType,
             warehouse: config.snowflakeWarehouse,
             database: config.snowflakeDatabase,
             schema: config.snowflakeSchema,
@@ -233,7 +257,7 @@ export const createApp = (config: AppConfig) => {
     .use(profileRoutes(authService, captureService))
     .use(albumRoutes(albumService, authService))
     .use(analysisRoutes(orchestrator, repository, metrics))
-    .use(captureRoutes(source, orchestrator))
+    .use(captureRoutes(source, orchestrator, mediaWorkflow, mediaStore))
     .use(searchRoutes(searchService, new TagSuggestionService(derivedStore)))
     .get("/", () => ({
       name: "saveyour.tech API",
