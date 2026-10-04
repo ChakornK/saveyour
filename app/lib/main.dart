@@ -22,6 +22,7 @@ class SaveYourTechApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'saveyour.tech',
+    debugShowCheckedModeBanner: false,
     theme: AppTheme.light(),
     home: const HomePage(),
   );
