@@ -40,6 +40,7 @@ export const createApp = (config: AppConfig) => {
   const searchConfig = useProduction && config.searchUrl ? { url: config.searchUrl, index: config.searchIndex, apiKey: config.searchApiKey } : undefined
   const searchIndex = searchConfig ? new OpenSearchIndex(searchConfig) : new InMemorySearchIndex()
   const searchService = new SearchService(searchIndex)
+  const redis = useProduction && config.redisUrl ? new RedisClientAdapter(config.redisUrl) : undefined
   const initialize = async () => {
     if (redis) await redis.connect()
     if (mongo) {
@@ -56,7 +57,6 @@ export const createApp = (config: AppConfig) => {
   const metrics = new InMemoryAnalysisMetrics()
   const provider = useProduction && config.geminiApiKey ? new GeminiProvider({ apiKey: config.geminiApiKey, model: config.geminiModel, timeoutMs: config.geminiTimeoutMs, maxAttempts: config.geminiMaxAttempts }) : new FakeAiProvider()
   const pipeline = new AnalysisPipeline(source, derivedStore, provider)
-  const redis = useProduction && config.redisUrl ? new RedisClientAdapter(config.redisUrl) : undefined
   const queue = redis ? new RedisJobQueue(redis, repository) : new InMemoryJobQueue(repository)
   const orchestrator = new AnalysisOrchestrator(repository, pipeline, 3, undefined, new QueuePublisher(queue))
   const app = new Elysia({ name: 'saveyour-tech-api' })
@@ -64,7 +64,7 @@ export const createApp = (config: AppConfig) => {
     .use(cors({ origin: config.corsOrigins.length === 0 ? true : config.corsOrigins }))
     .use(rateLimit(new InMemoryRateLimitStore(), 120, 60_000))
     .use(authentication({ required: config.authRequired, tokens: config.authTokens }))
-    .onError(({ code, error, set }) => { const requestId = crypto.randomUUID(); set.status = code === 'NOT_FOUND' ? 404 : 500; const detail = error instanceof Error ? error.message : undefined; return { code: code === 'NOT_FOUND' ? 'NOT_FOUND' : 'INTERNAL_ERROR', message: code === 'NOT_FOUND' ? 'Route not found' : 'An unexpected error occurred', requestId, ...(config.appEnv === 'development' && detail ? { detail } : {}) } })
+    .onError(({ code, error, set }) => { const requestId = crypto.randomUUID(); const status = code === 'NOT_FOUND' ? 404 : code === 'VALIDATION' ? 400 : 500; set.status = status; const detail = error instanceof Error ? error.message : undefined; return { code: code === 'NOT_FOUND' ? 'NOT_FOUND' : code === 'VALIDATION' ? 'VALIDATION_ERROR' : 'INTERNAL_ERROR', message: code === 'NOT_FOUND' ? 'Route not found' : code === 'VALIDATION' ? 'Request validation failed' : 'An unexpected error occurred', requestId, ...(config.appEnv !== 'production' && detail ? { detail } : {}) } })
     .use(healthRoutes(config, mongo))
     .use(analysisRoutes(orchestrator, repository, metrics))
     .use(captureRoutes(source, orchestrator))
