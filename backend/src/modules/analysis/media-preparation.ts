@@ -6,11 +6,18 @@ export interface AuthorizedMediaStore {
   saveDerived(ownerId: string, source: MediaReference, artifact: MediaAsset): Promise<MediaReference>;
 }
 
+export interface PreparedProviderInput {
+  mediaAssetId: string;
+  mimeType: string;
+  bytes: Uint8Array;
+  timestampMs?: number;
+}
+
 export interface PreparedMedia {
   source: MediaReference;
-  image?: MediaAsset;
-  frames: MediaAsset[];
-  audio?: MediaAsset;
+  image?: PreparedProviderInput;
+  frames: PreparedProviderInput[];
+  audio?: PreparedProviderInput;
 }
 
 export class MediaPreparationOrchestrator {
@@ -41,13 +48,17 @@ export class MediaPreparationOrchestrator {
         : undefined;
       prepared.push({
         source: reference,
-        image: reference.mimeType.startsWith("image/") ? asset : undefined,
-        frames: derivedFrames.map((frame) => ({
-          bytes: new Uint8Array(),
+        image: reference.mimeType.startsWith("image/")
+          ? { mediaAssetId: reference.id, mimeType: asset.mimeType, bytes: asset.bytes }
+          : undefined,
+        frames: derivedFrames.map((frame, index) => ({
+          mediaAssetId: frame.id,
           mimeType: frame.mimeType,
+          bytes: frames[index]?.bytes ?? new Uint8Array(),
+          timestampMs: frames[index]?.timestampMs,
         })),
         audio: derivedAudio
-          ? { bytes: new Uint8Array(), mimeType: derivedAudio.mimeType }
+          ? { mediaAssetId: derivedAudio.id, mimeType: derivedAudio.mimeType, bytes: audio?.bytes ?? new Uint8Array() }
           : undefined,
       });
     }
