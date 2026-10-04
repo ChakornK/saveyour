@@ -4,18 +4,29 @@ import 'package:http/http.dart' as http;
 
 import '../domain/models.dart';
 
+const apiBaseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'http://10.0.2.2:3000',
+);
+
 class ApiClient implements AppRepository {
-  ApiClient({http.Client? client, this.baseUrl = 'http://localhost:3000'})
+  ApiClient({http.Client? client, this.baseUrl = apiBaseUrl, this.authToken})
     : _client = client ?? http.Client();
 
   final http.Client _client;
   final String baseUrl;
+  final String? authToken;
+
+  Map<String, String> _headers([Map<String, String>? extra]) => {
+    if (authToken != null) 'authorization': 'Bearer $authToken',
+    ...?extra,
+  };
 
   @override
   Future<List<SavedPost>> listPosts({String? query}) async {
     final uri = Uri.parse('$baseUrl/posts')
         .replace(queryParameters: query == null ? null : {'q': query});
-    final response = await _client.get(uri);
+    final response = await _client.get(uri, headers: _headers());
     if (response.statusCode >= 400)
       throw ApiException(response.statusCode, 'Unable to load saved posts.');
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -28,7 +39,7 @@ class ApiClient implements AppRepository {
   Future<void> saveLink(String url) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/capture'),
-      headers: {'content-type': 'application/json'},
+      headers: _headers({'content-type': 'application/json'}),
       body: jsonEncode({'url': url}),
     );
     if (response.statusCode >= 400)
@@ -37,7 +48,7 @@ class ApiClient implements AppRepository {
 
   @override
   Future<void> removePost(String id) async {
-    final response = await _client.delete(Uri.parse('$baseUrl/posts/$id'));
+    final response = await _client.delete(Uri.parse('$baseUrl/posts/$id'), headers: _headers());
     if (response.statusCode >= 400)
       throw ApiException(response.statusCode, 'Unable to remove this post.');
   }
@@ -46,6 +57,7 @@ class ApiClient implements AppRepository {
   Future<void> removeFromAlbum(String postId, String album) async {
     final response = await _client.delete(
       Uri.parse('$baseUrl/albums/${Uri.encodeComponent(album)}/posts/$postId'),
+      headers: _headers(),
     );
     if (response.statusCode >= 400)
       throw ApiException(response.statusCode, 'Unable to update this album.');

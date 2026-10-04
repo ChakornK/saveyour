@@ -14,6 +14,9 @@ export interface AppConfig {
   seaweedfsAccessKey?: string;
   seaweedfsSecretKey?: string;
   googleClientId?: string;
+  googleClientSecret?: string;
+  googleRedirectUri?: string;
+  googleIssuer: string;
   authRequired: boolean;
   authTokens: Record<string, string>;
   mongoUri: string;
@@ -106,6 +109,9 @@ export const loadConfig = (
       ? { seaweedfsSecretKey: env.SEAWEEDFS_SECRET_KEY }
       : {}),
     ...(env.GOOGLE_CLIENT_ID ? { googleClientId: env.GOOGLE_CLIENT_ID } : {}),
+    ...(env.GOOGLE_CLIENT_SECRET ? { googleClientSecret: env.GOOGLE_CLIENT_SECRET } : {}),
+    ...(env.GOOGLE_REDIRECT_URI ? { googleRedirectUri: env.GOOGLE_REDIRECT_URI } : {}),
+    googleIssuer: env.GOOGLE_ISSUER ?? "https://accounts.google.com",
     authRequired:
       env.AUTH_REQUIRED === "true" ||
       parseEnvironment(env.APP_ENV) === "production",
