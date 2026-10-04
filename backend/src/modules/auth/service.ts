@@ -7,6 +7,8 @@ export interface GoogleClaims {
   nonce: string;
   subject: string;
   email: string;
+  name?: string;
+  picture?: string;
   expiresAt: number;
 }
 
@@ -126,8 +128,13 @@ export class AuthService {
     ) {
       throw new AuthError("AUTH_INVALID", "Google authorization is invalid");
     }
-    return this.createSession(claims.subject, claims.email, ttlSeconds);
-  }
+    return this.createSession(
+      claims.subject,
+      claims.email,
+      ttlSeconds,
+      claims.name,
+      claims.picture,
+    );  }
   async signInWithIdToken(
     idToken: string,
     expected: { clientId: string; issuer: string },
@@ -202,12 +209,7 @@ export class AuthService {
     const repository = this.accounts as AccountRepository & {
       findById?: (id: string) => Promise<Account | undefined>;
     };
-    const account = await repository.findById?.(accountId);
-    if (account) return account;
-    const accounts = this.accounts as AccountRepository & {
-      findByGoogleSubject?: (subject: string) => Promise<Account | undefined>;
-    };
-    return accounts.findByGoogleSubject?.(accountId);
+    return repository.findById?.(accountId);
   }
 
   async revoke(token: string) {

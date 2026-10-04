@@ -327,7 +327,7 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 24),
           Center(
             child: Text(
-              p.displayName == 'SaveYour user' ? p.username : p.displayName,
+              p.displayName,
               style: Theme.of(context).textTheme.headlineSmall
                   ?.copyWith(fontWeight: FontWeight.w900),
             ),
