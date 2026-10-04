@@ -262,8 +262,9 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) => FutureBuilder<UserProfile>(
     future: widget.repository.getProfile(),
     builder: (context, snapshot) {
-      if (!snapshot.hasData)
+      if (!snapshot.hasData) {
         return const Center(child: CircularProgressIndicator());
+      }
       final p = snapshot.data!;
       return ListView(
         padding: const EdgeInsets.all(24),

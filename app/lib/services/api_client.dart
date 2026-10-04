@@ -24,8 +24,9 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
     final uri = Uri.parse('$baseUrl/posts')
         .replace(queryParameters: query == null ? null : {'q': query});
     final response = await _client.get(uri, headers: _headers());
-    if (response.statusCode >= 400)
+    if (response.statusCode >= 400) {
       throw ApiException(response.statusCode, 'Unable to load saved posts.');
+    }
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     return (body['items'] as List<dynamic>? ?? const [])
         .map((item) => _postFromJson(item as Map<String, dynamic>))
@@ -39,15 +40,17 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
       headers: _headers({'content-type': 'application/json'}),
       body: jsonEncode({'url': url}),
     );
-    if (response.statusCode >= 400)
+    if (response.statusCode >= 400) {
       throw ApiException(response.statusCode, 'Unable to save that link.');
+    }
   }
 
   @override
   Future<void> removePost(String id) async {
     final response = await _client.delete(Uri.parse('$baseUrl/posts/$id'), headers: _headers());
-    if (response.statusCode >= 400)
+    if (response.statusCode >= 400) {
       throw ApiException(response.statusCode, 'Unable to remove this post.');
+    }
   }
 
   @override
@@ -75,8 +78,9 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
       Uri.parse('$baseUrl/albums/${Uri.encodeComponent(album)}/posts/$postId'),
       headers: _headers(),
     );
-    if (response.statusCode >= 400)
+    if (response.statusCode >= 400) {
       throw ApiException(response.statusCode, 'Unable to update this album.');
+    }
   }
 
   SavedPost _postFromJson(Map<String, dynamic> json) => SavedPost(

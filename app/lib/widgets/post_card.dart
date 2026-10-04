@@ -50,7 +50,7 @@ class PostCard extends StatelessWidget {
   );
 
   Widget _media() {
-    if (post.mediaKind == MediaKind.text)
+    if (post.mediaKind == MediaKind.text) {
       return Padding(
         padding: const EdgeInsets.all(6),
         child: Align(
@@ -63,18 +63,20 @@ class PostCard extends StatelessWidget {
           ),
         ),
       );
-    if (post.thumbnailUrl == null)
+    }
+    if (post.thumbnailUrl == null) {
       return Container(
         color: Color(post.color),
         child: const Center(child: Icon(Icons.image_outlined, size: 46)),
       );
+    }
     return Stack(
       fit: StackFit.expand,
       children: [
         Image.network(
           post.thumbnailUrl!,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
+          errorBuilder: (_, _, _) => Container(
             color: Color(post.color),
             child: const Icon(Icons.image_not_supported_outlined, size: 46),
           ),

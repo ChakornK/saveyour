@@ -72,18 +72,20 @@ class _HomePageState extends State<HomePage> {
     setState(() => _state = LoadState(LoadStatus.loading, data: _state.data));
     try {
       final posts = await _repository.listPosts(query: _searchController.text);
-      if (mounted)
+      if (mounted) {
         setState(
           () => _state = LoadState(
             posts.isEmpty ? LoadStatus.empty : LoadStatus.success,
             data: posts,
           ),
         );
+      }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(
           () => _state = LoadState(LoadStatus.failure, message: '$error'),
         );
+      }
     }
   }
 
@@ -243,14 +245,16 @@ class _HomePageState extends State<HomePage> {
   Future<void> _showSaveDialogForUrl(String url) async {
     try {
       await _repository.saveLink(url);
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Link queued for capture.')),
         );
+      }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('$error')));
+      }
     }
   }
 
@@ -268,9 +272,10 @@ class _HomePageState extends State<HomePage> {
     listAlbums: () => _repository.listAlbums(),
     onRemoveFromAlbum: (album) async {
       await _repository.removeFromAlbum(post.id, album);
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Removed from $album')));
+      }
     },
   );
 }

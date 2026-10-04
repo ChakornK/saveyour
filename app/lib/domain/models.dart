@@ -260,8 +260,9 @@ class MockAppRepository
   }) async {
     final albums = <String, List<SavedPost>>{};
     for (final post in _posts)
-      for (final album in post.albums)
+      for (final album in post.albums) {
         albums.putIfAbsent(album, () => []).add(post);
+      }
     final needle = query.toLowerCase();
     return albums.entries
         .map(
@@ -312,8 +313,9 @@ class MockAppRepository
   @override
   Future<void> saveLink(String url) async {
     if (Uri.tryParse(url.trim())?.scheme case final scheme?
-        when !['http', 'https'].contains(scheme))
+        when !['http', 'https'].contains(scheme)) {
       throw const FormatException('Enter a valid public link.');
+    }
   }
 
   @override
