@@ -17,6 +17,24 @@ export class OnnxClipImageTagger implements ImageTagger {
     return new Tokenizer(await Bun.file(this.config.tokenizerPath).json(), await Bun.file(this.config.tokenizerConfigPath).json());
   }
   private getText() { return (this.text ??= ort.InferenceSession.create(this.config.textModelPath!)); }
+  private async textEmbedding(label: string) {
+    const tokenizer = await this.getTokenizer();
+    const encoded = tokenizer.encode(`a photo of a ${label}`);
+    const ids = Int32Array.from(encoded.ids);
+    const mask = Int32Array.from(encoded.attention_mask);
+    const session = await this.getText();
+    const inputs: Record<string, ort.Tensor> = {};
+    for (const name of session.inputNames) {
+      if (name === "input_ids") inputs[name] = new ort.Tensor("int64", BigInt64Array.from(ids, BigInt), [1, ids.length]);
+      else if (name === "attention_mask") inputs[name] = new ort.Tensor("int64", BigInt64Array.from(mask, BigInt), [1, mask.length]);
+    }
+    const outputName = session.outputNames.find((name) => name === "text_embeds") ?? session.outputNames[0];
+    if (!outputName) throw new Error("ONNX text model has no output");
+    const output = await session.run(inputs);
+    const values = Array.from(output[outputName].data as Float32Array);
+    const norm = Math.sqrt(values.reduce((sum, value) => sum + value * value, 0)) || 1;
+    return values.map((value) => value / norm);
+  }
   async tagImage(input: { bytes: Uint8Array; mimeType: string }) {
     if (!input.mimeType.startsWith("image/") || !input.bytes.byteLength) return [];
     const { data, info } = await sharp(input.bytes).resize(224, 224, { fit: "cover" }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -36,6 +54,11 @@ export class OnnxClipImageTagger implements ImageTagger {
     const embedding = Array.from(output[outputName].data as Float32Array);
     const norm = Math.sqrt(embedding.reduce((sum, value) => sum + value * value, 0)) || 1;
     const normalized = embedding.map((value) => value / norm);
-    return this.config.labels.map((label, index) => ({ label, confidence: Math.max(0, Math.min(1, (normalized[index] ?? 0 + 1) / 2)) })).filter((tag) => tag.confidence >= (this.config.threshold ?? 0.5)).sort((a, b) => b.confidence - a.confidence).slice(0, 12);
+    const tags = await Promise.all(this.config.labels.map(async (label) => {
+      const text = await this.textEmbedding(label);
+      const similarity = normalized.reduce((sum, value, index) => sum + value * (text[index] ?? 0), 0);
+      return { label, confidence: Math.max(0, Math.min(1, (similarity + 1) / 2)) };
+    }));
+    return tags.filter((tag) => tag.confidence >= (this.config.threshold ?? 0.5)).sort((a, b) => b.confidence - a.confidence).slice(0, 12);
   }
 }
