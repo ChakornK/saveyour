@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../domain/models.dart';
-import 'auth.dart';
 import 'session_store.dart';
 
 class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
@@ -169,7 +168,9 @@ class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
         title: json['title'] as String? ?? 'Saved post',
         description: json['text'] as String? ?? '',
         platform: _platform(json['platform'] as String?),
-        mediaKind: _mediaKind((json['mediaKinds'] as List<dynamic>?)?.firstOrNull as String?),
+        mediaKind: _mediaKind(((json['mediaKinds'] as List<dynamic>?)?.isNotEmpty ?? false)
+            ? (json['mediaKinds'] as List<dynamic>).first as String
+            : null),
         tags: (json['tags'] as List<dynamic>? ?? const []).cast<String>(),
         analysisStatus: json['analysisStatus'] as String?,
         sourceUrl: json['canonicalUrl'] as String?,

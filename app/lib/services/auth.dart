@@ -28,10 +28,12 @@ class PendingGoogleAuthProvider implements AuthProvider {
 
 class GoogleAuthService {
   GoogleAuthService({
-    required this.api,
-    required this.sessions,
+    ApiAuthClient? api,
+    SessionStore? sessions,
     AuthProvider? provider,
-  }) : provider = provider ?? PendingGoogleAuthProvider();
+  })  : api = api ?? ApiAuthClient(request: (_, __, ___, ____) async => <String, dynamic>{}),
+        sessions = sessions ?? MemorySessionStore(),
+        provider = provider ?? PendingGoogleAuthProvider();
 
   final ApiAuthClient api;
   final SessionStore sessions;
@@ -40,6 +42,7 @@ class GoogleAuthService {
 
   Session? get session => _session;
   bool get isSignedIn => _session != null;
+  String? get email => _session?.email;
 
   Future<void> restore() async => _session = await sessions.read();
 
