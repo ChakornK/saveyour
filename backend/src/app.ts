@@ -58,7 +58,7 @@ export const createApp = (config: AppConfig) => {
   }
   const metrics = new InMemoryAnalysisMetrics()
   const provider = useProduction && config.snowflakeAccount && config.snowflakeUser && config.snowflakeWarehouse && config.snowflakeDatabase && config.snowflakeSchema && (config.snowflakePassword || config.snowflakeToken)
-    ? new CortexAnalysisProvider(new SnowflakeCortexClient({ account: config.snowflakeAccount, user: config.snowflakeUser, password: config.snowflakePassword, token: config.snowflakeToken, warehouse: config.snowflakeWarehouse, database: config.snowflakeDatabase, schema: config.snowflakeSchema, endpoint: config.snowflakeEndpoint, timeoutMs: config.cortexTimeoutMs ?? 10_000 }), { model: config.cortexModel ?? 'claude-3-5-sonnet', embeddingModel: config.cortexEmbeddingModel ?? 'snowflake-arctic-embed-m-v1.5', maxAttempts: config.cortexMaxAttempts ?? 3 })
+    ? new CortexAnalysisProvider(new SnowflakeCortexClient({ account: config.snowflakeAccount, user: config.snowflakeUser, password: config.snowflakePassword, token: config.snowflakeToken, tokenType: config.snowflakeTokenType, warehouse: config.snowflakeWarehouse, database: config.snowflakeDatabase, schema: config.snowflakeSchema, endpoint: config.snowflakeEndpoint, timeoutMs: config.cortexTimeoutMs ?? 10_000 }), { model: config.cortexModel ?? 'claude-3-5-sonnet', embeddingModel: config.cortexEmbeddingModel ?? 'snowflake-arctic-embed-m-v1.5', maxAttempts: config.cortexMaxAttempts ?? 3 })
     : useProduction && config.geminiApiKey
       ? new GeminiProvider({ apiKey: config.geminiApiKey, model: config.geminiModel, timeoutMs: config.geminiTimeoutMs, maxAttempts: config.geminiMaxAttempts })
       : new FakeAiProvider()

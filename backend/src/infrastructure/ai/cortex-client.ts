@@ -1,3 +1,4 @@
+import snowflake from 'snowflake-sdk'
 import { CortexError, type CortexClient } from './cortex-types'
 
 export interface CortexClientConfig {
@@ -5,6 +6,7 @@ export interface CortexClientConfig {
   user: string
   password?: string
   token?: string
+  tokenType?: 'oauth' | 'jwt'
   warehouse: string
   database: string
   schema: string
@@ -24,33 +26,38 @@ export const redactCortexValue = (value: unknown): unknown => {
 export class SnowflakeCortexClient implements CortexClient {
   private readonly timeoutMs
   private readonly capabilityCache = new Map<string, { available: boolean; checkedAt: number }>()
+  private connection?: snowflake.Connection
   constructor(private readonly config: CortexClientConfig) {
     if (!config.account || !config.user || !config.warehouse || !config.database || !config.schema) throw new CortexError('configuration', 'Snowflake Cortex configuration is incomplete')
     if (!config.password && !config.token) throw new CortexError('configuration', 'Snowflake Cortex credential is missing')
+    if (config.password && config.token) throw new CortexError('configuration', 'Configure either a Snowflake password or token, not both')
+    if (config.token) throw new CortexError('configuration', 'Snowflake token authentication is unsupported; use username and password')
     this.timeoutMs = config.timeoutMs ?? 10_000
   }
 
   async executeFunction(functionName: string, args: unknown[], signal?: AbortSignal) {
     if (!/^[A-Z_][A-Z0-9_]*$/i.test(functionName)) throw new CortexError('validation', 'Invalid Cortex function name')
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs)
-    const combined = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal
-    try {
-      const response = await fetch(this.config.endpoint ?? `https://${this.config.account}.snowflakecomputing.com/api/v2/statements`, { method: 'POST', signal: combined, headers: { 'content-type': 'application/json', authorization: `Bearer ${this.config.token ?? this.config.password}` }, body: JSON.stringify({ statement: `SELECT ${functionName}(?)`, bindings: args.map((value) => ({ type: 'TEXT', value: JSON.stringify(value) })), warehouse: this.config.warehouse, database: this.config.database, schema: this.config.schema }) })
-      if (response.ok) return (await response.json()) as unknown
-      const message = redact(await response.text())
-      const category = response.status === 401 ? 'authentication' : response.status === 403 ? 'authorization' : response.status === 429 || response.status >= 500 ? 'transient' : response.status === 404 ? 'capability' : 'permanent'
-      throw new CortexError(category, `Cortex request failed with status ${response.status}: ${message}`)
-    } catch (error) {
-      if (error instanceof CortexError) throw error
-      if (error instanceof DOMException && error.name === 'AbortError') throw new CortexError('transient', 'Cortex request timed out', 'retry')
-      throw new CortexError('transient', `Cortex request failed: ${redact(error instanceof Error ? error.message : 'unknown error')}`, 'retry', error)
-    } finally { clearTimeout(timer) }
+    if (signal?.aborted) throw new CortexError('transient', 'Cortex request was cancelled', 'retry')
+    const connection = await this.connect()
+    return await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new CortexError('transient', 'Cortex request timed out', 'retry')), this.timeoutMs)
+      connection.execute({ sqlText: `SELECT ${functionName}(?)`, binds: args.map((value) => JSON.stringify(value)), complete: (error, statement, rows) => { clearTimeout(timer); if (error) { reject(new CortexError(this.errorCategory(error), `Cortex request failed: ${redact(error.message)}`, this.errorCategory(error) === 'transient' ? 'retry' : undefined, error)); return } resolve(rows?.[0] ?? statement.getNumRows()) } })
+    })
   }
+
+  private async connect() {
+    if (this.connection) return this.connection
+    const connection = snowflake.createConnection({ account: this.config.account, username: this.config.user, password: this.config.password, warehouse: this.config.warehouse, database: this.config.database, schema: this.config.schema })
+    await new Promise<void>((resolve, reject) => connection.connect((error) => error ? reject(new CortexError('authentication', `Snowflake connection failed: ${redact(error.message)}`, undefined, error)) : resolve()))
+    this.connection = connection
+    return connection
+  }
+
+  private errorCategory(error: { code?: unknown }) { const code = String(error.code ?? ''); return code === '390100' || code === '390111' ? 'authentication' as const : code === '390112' ? 'authorization' as const : 'transient' as const }
 
   async health() { try { await this.executeFunction('CURRENT_VERSION', []); return { status: 'healthy' as const } } catch (error) { return { status: 'unhealthy' as const, details: error instanceof Error ? error.message : 'Cortex unavailable' } } }
   async capability(functionName: string, ttlMs = 300_000) { const cached = this.capabilityCache.get(functionName); if (cached && Date.now() - cached.checkedAt < ttlMs) return cached.available; try { await this.executeFunction(functionName, []); this.capabilityCache.set(functionName, { available: true, checkedAt: Date.now() }); return true } catch { this.capabilityCache.set(functionName, { available: false, checkedAt: Date.now() }); return false } }
-  async close() {}
+  async close() { if (this.connection) await new Promise<void>((resolve) => this.connection?.destroy(() => resolve())); this.connection = undefined }
 }
 
 export class FakeCortexClient implements CortexClient {
