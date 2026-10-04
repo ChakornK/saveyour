@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
@@ -79,6 +81,7 @@ class GoogleAuthService {
   final GoogleSignIn _googleSignIn;
   final SessionStore _sessions;
   AuthSession? _session;
+  bool _initialized = false;
 
   AuthSession? get session => _session;
   bool get isSignedIn => _session != null;
@@ -109,16 +112,46 @@ class GoogleAuthService {
         'Google sign-in is not configured. Launch the app with --dart-define=GOOGLE_SERVER_CLIENT_ID=<web-client-id>.',
       );
     }
-    await _googleSignIn.initialize(serverClientId: serverClientId);
-    final googleAccount = await _googleSignIn.authenticate();
-    final googleAuth = googleAccount.authentication;
-    final idToken = googleAuth.idToken;
-    if (idToken == null || idToken.isEmpty) {
+    try {
+      if (kIsWeb) {
+        throw const AuthException(
+          'Use the Google sign-in button to continue on web.',
+        );
+      }
+      if (!_initialized) {
+        await _googleSignIn.initialize(serverClientId: serverClientId);
+        _initialized = true;
+      }
+      final googleAccount = await _googleSignIn.authenticate();
+      final googleAuth = googleAccount.authentication;
+      final idToken = googleAuth.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        throw const AuthException(
+          'Google did not return an ID token. Check that the Web OAuth client ID is configured as serverClientId.',
+        );
+      }
+
+      return await _completeSignIn(idToken);
+    } on AuthException {
+      rethrow;
+    } catch (error) {
+      throw AuthException('Google sign-in failed: $error');
+    }
+  }
+
+  Future<AuthSession> signInWithIdToken(String idToken) async {
+    if (baseUrl.isEmpty) {
       throw const AuthException(
-        'Google did not return an ID token. Check that the Web OAuth client ID is configured as serverClientId.',
+        'The API URL is not configured. Launch the app with --dart-define=API_BASE_URL=http://localhost:3000.',
       );
     }
+    if (idToken.isEmpty) {
+      throw const AuthException('Google returned an empty ID token.');
+    }
+    return _completeSignIn(idToken);
+  }
 
+  Future<AuthSession> _completeSignIn(String idToken) async {
     final response = await _client.post(
       _url('/auth/google'),
       headers: {'content-type': 'application/json'},

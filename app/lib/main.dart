@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import 'domain/models.dart';
 import 'services/api_client.dart' as api;
@@ -41,6 +43,8 @@ class _HomePageState extends State<HomePage> {
   Timer? _searchDebounce;
   final _shareIntents = ShareIntentService();
   StreamSubscription<String>? _shareSubscription;
+  StreamSubscription<GoogleSignInAuthenticationEvent>? _googleAuthSubscription;
+  Future<void>? _webGoogleInitialization;
   LoadState<List<SavedPost>> _state = const LoadState(LoadStatus.initial);
   int _tab = 0;
 
@@ -50,6 +54,9 @@ class _HomePageState extends State<HomePage> {
     final sessions = SecureSessionStore();
     _auth = auth.GoogleAuthService(sessions: sessions);
     _repository = api.ApiClient(sessions: sessions);
+    if (kIsWeb) {
+      _webGoogleInitialization = _initializeWebGoogleSignIn();
+    }
     _restoreAuth();
     _shareIntents.start();
     _shareSubscription = _shareIntents.links.listen(_showSaveDialogForUrl);
@@ -58,6 +65,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _shareSubscription?.cancel();
+    _googleAuthSubscription?.cancel();
     _shareIntents.dispose();
     _searchDebounce?.cancel();
     _searchController.dispose();
@@ -75,16 +83,49 @@ class _HomePageState extends State<HomePage> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _initializeWebGoogleSignIn() async {
+    try {
+      await GoogleSignIn.instance.initialize(
+        clientId: const String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID'),
+      );
+      _googleAuthSubscription = GoogleSignIn.instance.authenticationEvents
+          .listen((event) async {
+            if (event is GoogleSignInAuthenticationEventSignIn) {
+              final idToken = event.user.authentication.idToken;
+              if (idToken == null || idToken.isEmpty) return;
+              try {
+                await _auth.signInWithIdToken(idToken);
+                if (mounted) setState(() {});
+              } catch (error) {
+                _showAuthError(error);
+              }
+            }
+          }, onError: _showAuthError);
+    } catch (error) {
+      _showAuthError(error);
+    }
+  }
+
+  void _showAuthError(Object error) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(error.toString())));
+  }
+
   Future<void> _signIn() async {
     try {
+      if (kIsWeb) {
+        await (_webGoogleInitialization ??= _initializeWebGoogleSignIn());
+        await GoogleSignIn.instance.attemptLightweightAuthentication(
+          reportAllExceptions: true,
+        );
+        return;
+      }
       await _auth.signIn();
       if (mounted) setState(() {});
     } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error.toString())));
-      }
+      _showAuthError(error);
     }
   }
 
@@ -111,7 +152,9 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_auth.isSignedIn) return _WelcomePage(onContinue: _signIn);
+    if (!_auth.isSignedIn) {
+      return _WelcomePage(onContinue: _signIn);
+    }
     final width = MediaQuery.sizeOf(context).width;
     final wide = width >= 760;
     return Scaffold(
