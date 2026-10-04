@@ -247,6 +247,8 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  bool _signingIn = false;
+
   @override
   Widget build(BuildContext context) => FutureBuilder<UserProfile>(
     future: widget.repository.getProfile(),
@@ -299,29 +301,50 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 32),
           BrutalSurface(
             child: widget.auth?.isSignedIn == true
-                ? BrutalistButton(
-                    label: 'Log out',
-                    icon: const Icon(Icons.logout),
-                    variant: BrutalistButtonVariant.destructive,
-                    onPressed: () async {
-                      await widget.auth?.signOut();
-                      if (mounted) setState(() {});
-                    },
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Signed in as ${widget.auth?.email ?? 'Google account'}',
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 12),
+                      BrutalistButton(
+                        label: 'Log out',
+                        icon: const Icon(Icons.logout),
+                        variant: BrutalistButtonVariant.destructive,
+                        onPressed: () async {
+                          await widget.auth?.signOut();
+                          if (mounted) setState(() {});
+                        },
+                      ),
+                    ],
                   )
                 : BrutalistButton(
-                    label: 'Continue with Google',
-                    icon: const Icon(Icons.login),
-                    onPressed: () async {
-                      try {
-                        await widget.auth?.signIn();
-                        if (mounted) setState(() {});
-                      } catch (error) {
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('$error')),
-                        );
-                      }
-                    },
+                    label: _signingIn ? 'Signing in…' : 'Continue with Google',
+                    icon: _signingIn
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.login),
+                    onPressed: _signingIn
+                        ? null
+                        : () async {
+                            setState(() => _signingIn = true);
+                            try {
+                              await widget.auth?.signIn();
+                              if (mounted) setState(() {});
+                            } catch (error) {
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('$error')),
+                              );
+                            } finally {
+                              if (mounted) setState(() => _signingIn = false);
+                            }
+                          },
                   ),
           ),
         ],
