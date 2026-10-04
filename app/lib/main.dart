@@ -12,6 +12,8 @@ import 'screens.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  requiredAppConfig('API_BASE_URL', apiBaseUrl);
+  requiredAppConfig('GOOGLE_SERVER_CLIENT_ID', googleServerClientId);
   runApp(const SaveYourTechApp());
 }
 
@@ -32,7 +34,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final _repository = MockAppRepository();
+  final _repository = ApiClient();
   final _auth = GoogleAuthService();
   final _searchController = TextEditingController();
   final _shareIntents = ShareIntentService();

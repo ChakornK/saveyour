@@ -4,10 +4,15 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 
-const apiBaseUrl = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: 'http://10.0.2.2:3000',
-);
+const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
+const googleServerClientId = String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
+
+String requiredAppConfig(String name, String value) {
+  if (value.isEmpty) {
+    throw StateError('$name is not configured. Pass it with --dart-define=$name=...');
+  }
+  return value;
+}
 
 class AuthSession {
   const AuthSession({required this.accountId, required this.email, required this.token});
@@ -32,7 +37,7 @@ class AuthSession {
 class GoogleAuthService {
   GoogleAuthService({
     this.baseUrl = apiBaseUrl,
-    this.serverClientId = '414871424622-6qao1i3h52737um7pi73riha5d9ra8gc.apps.googleusercontent.com',
+    this.serverClientId = googleServerClientId,
     http.Client? client,
     FlutterSecureStorage? storage,
     GoogleSignIn? googleSignIn,

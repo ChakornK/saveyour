@@ -35,7 +35,11 @@ import { initializeSearchIndex } from "./infrastructure/search/index-init";
 import { SeaweedFsMediaStore } from "./infrastructure/media/seaweedfs-store";
 import { InMemoryMediaStore } from "./modules/media/store";
 import { createMediaRoutes } from "./modules/media/routes";
-import { AuthError, AuthService } from "./modules/auth/service";
+import {
+  AuthError,
+  AuthService,
+  GoogleWebCryptoVerifier,
+} from "./modules/auth/service";
 import { CaptureError } from "./modules/capture/types";
 import { createAuthRoutes } from "./modules/auth/routes";
 import { MongoMediaAssetRepository } from "./modules/media/repository";
@@ -48,7 +52,13 @@ import { checkIntegrationHealth } from "./modules/analysis/health";
 
 export const createApp = (config: AppConfig) => {
   const useProduction = config.appEnv === "production";
-  const authService = new AuthService();
+  const authService = new AuthService(
+    undefined,
+    undefined,
+    config.googleClientId
+      ? new GoogleWebCryptoVerifier(config.googleJwksUrl)
+      : undefined,
+  );
   const mongo = useProduction
     ? new MongoDatabase({
         uri: config.mongoUri,

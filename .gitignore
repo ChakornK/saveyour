@@ -5,5 +5,6 @@ app/linux/flutter/ephemeral/
 app/android/app/google-services.json
 app/android/app/google-oauth-client.json
 app/android/build/
+app/.env
 
 **.env
