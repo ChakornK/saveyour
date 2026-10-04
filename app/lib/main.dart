@@ -170,10 +170,10 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverGrid.builder(
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 360,
-                mainAxisSpacing: 20,
-                crossAxisSpacing: 20,
-                childAspectRatio: .78,
+                maxCrossAxisExtent: 340,
+                mainAxisSpacing: 18,
+                crossAxisSpacing: 18,
+                childAspectRatio: .80,
               ),
               itemCount: _state.data?.length ?? 0,
               itemBuilder: (context, index) => PostCard(
