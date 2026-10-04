@@ -43,16 +43,22 @@ import { MongoCaptureRepository } from "./modules/capture/persistent-repository"
 import { CaptureService } from "./modules/capture/service";
 import { captureApiRoutes } from "./modules/capture/api-routes";
 import { RedisMediaDownloadQueue } from "./modules/media/download-queue";
+import { GoogleWebCryptoVerifier, InMemoryAccountRepository, InMemorySessionRepository } from "./modules/auth/service";
+import { MongoAccountRepository, MongoSessionRepository } from "./infrastructure/mongo/auth-repositories";
 
 export const createApp = (config: AppConfig) => {
   const useProduction = config.appEnv === "production";
-  const authService = new AuthService();
   const mongo = useProduction
     ? new MongoDatabase({
         uri: config.mongoUri,
         database: config.mongoDatabase,
       })
     : undefined;
+  const authService = new AuthService(
+    useProduction && mongo ? new MongoAccountRepository(mongo) : new InMemoryAccountRepository(),
+    useProduction && mongo ? new MongoSessionRepository(mongo) : new InMemorySessionRepository(),
+    new GoogleWebCryptoVerifier(),
+  );
   const repository = useProduction
     ? new MongoAnalysisRepository(mongo!)
     : new InMemoryAnalysisRepository();
@@ -124,6 +130,8 @@ export const createApp = (config: AppConfig) => {
         new MongoOutbox(mongo).ensureIndexes(),
         new MongoMediaAssetRepository(mongo).ensureIndexes(),
         new MongoCaptureRepository(mongo).ensureIndexes(),
+        new MongoAccountRepository(mongo).ensureIndexes(),
+        new MongoSessionRepository(mongo).ensureIndexes(),
       ]);
     }
     await initializeSearchIndex(searchIndex, searchConfig);
@@ -173,6 +181,7 @@ export const createApp = (config: AppConfig) => {
       authentication({
         required: config.authRequired,
         tokens: config.authTokens,
+        authenticate: async (token) => (await authService.authenticate(token)).ownerId,
       }),
     )
     .onError(({ code, error, set }) => {
