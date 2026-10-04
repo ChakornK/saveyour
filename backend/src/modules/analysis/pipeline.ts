@@ -1,8 +1,10 @@
 import type { AnalysisJob, AnalysisStage, SearchDocument } from "./contracts";
 import type { AiProvider } from "./provider";
+import type { CortexAnalysisProvider } from "../../infrastructure/ai/cortex-provider";
 import type { DerivedPostStore, EventPublisher } from "./events";
 import type { StageHandler } from "./orchestrator";
 import type { MediaProcessor } from "./media";
+import type { ImageTagger } from "../../infrastructure/ai/image-tagger";
 import {
   validateEmbedding,
   validateGeneratedDescription,
@@ -53,6 +55,7 @@ export class AnalysisPipeline implements StageHandler {
     private readonly ai: AiProvider,
     private readonly publisher?: EventPublisher,
     private readonly media?: MediaProcessor,
+    private readonly imageTagger?: ImageTagger,
   ) {}
 
   async run(job: AnalysisJob, stage: AnalysisStage) {
@@ -74,22 +77,25 @@ export class AnalysisPipeline implements StageHandler {
     };
     if (stage === "extract" && this.media) {
       for (const asset of source.media ?? [])
-        await this.media.extractFrames(asset);
+        if (asset.mimeType.startsWith("video/")) await this.media.extractFrames(asset);
     }
     if (stage === "transcribe" && this.media) {
       for (const asset of source.media ?? [])
-        await this.media.extractAudio(asset);
+        if (asset.mimeType.startsWith("video/") || asset.mimeType.startsWith("audio/")) await this.media.extractAudio(asset);
     }
-    if (stage === "describe" || stage === "normalize") {
-      const result = validateGeneratedDescription(
-        await this.ai.describeImage({
-          content: source.media?.[0]
-            ? `data:${source.media[0].mimeType};base64,${Buffer.from(source.media[0].bytes.buffer, source.media[0].bytes.byteOffset, source.media[0].bytes.byteLength).toString("base64")}`
-            : source.sourceText,
-          mimeType: source.media?.[0]?.mimeType,
-        }),
-      );
+    if (stage === "describe") {
+      const image = source.media?.[0];
+      const localTags = image && this.imageTagger ? await this.imageTagger.tagImage(image) : [];
+      const result = localTags.length
+        ? { text: `Image containing ${localTags.map((tag) => tag.label).join(", ")}.`, tags: localTags.map((tag) => tag.label), provenance: { provider: "local-mobileclip", model: "configured", generatedAt: new Date().toISOString() } }
+        : validateGeneratedDescription(await this.ai.describeImage({
+            content: image
+              ? `data:${image.mimeType};base64,${Buffer.from(image.bytes.buffer, image.bytes.byteOffset, image.bytes.byteLength).toString("base64")}`
+              : source.sourceText,
+            mimeType: image?.mimeType,
+          }));
       current.generatedText = result.text;
+      current.generatedTextProvenance = result.provenance;
       current.tags = [
         ...new Set(
           result.tags
@@ -99,7 +105,9 @@ export class AnalysisPipeline implements StageHandler {
       ];
     }
     if (stage === "transcribe") {
-      try {
+      if (!source.media?.[0] || (!source.media[0].mimeType.startsWith("video/") && !source.media[0].mimeType.startsWith("audio/"))) {
+        current.transcript = "";
+      } else try {
         const audio = source.media?.[0] && this.media
           ? await this.media.extractAudio(source.media[0])
           : source.media?.[0];
@@ -119,16 +127,8 @@ export class AnalysisPipeline implements StageHandler {
       }
     }
     if (stage === "embed") {
-      const embedding = await this.ai.embed({
-        content: [
-          source.sourceText,
-          current.generatedText,
-          current.transcript,
-          ...current.tags,
-        ]
-          .filter(Boolean)
-          .join(" "),
-      });
+      const embeddingText = [source.sourceText, current.generatedText, current.transcript, ...current.tags].filter(Boolean).join(" ");
+      const embedding = await this.ai.embed({ content: embeddingText });
       current.embedding = validateEmbedding(embedding, embedding.length);
     }
     if (!current.completedStages.includes(stage))

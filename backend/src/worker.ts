@@ -10,7 +10,9 @@ import { RedisJobQueue } from './infrastructure/queue/redis-queue'
 import { AnalysisWorker } from './modules/analysis/queue'
 import { AnalysisOrchestrator } from './modules/analysis/orchestrator'
 import { AnalysisPipeline } from './modules/analysis/pipeline'
+import { RoutedAiProvider } from './modules/analysis/provider'
 import { FfmpegMediaProcessor } from './infrastructure/media/ffmpeg-processor'
+import { OnnxClipImageTagger } from './infrastructure/ai/image-tagger'
 import { GeminiProvider } from './infrastructure/ai/gemini-provider'
 import { SnowflakeCortexClient } from './infrastructure/ai/cortex-client'
 import { CortexAnalysisProvider } from './infrastructure/ai/cortex-provider'
@@ -31,12 +33,14 @@ if (!config.searchUrl) throw new Error('SEARCH_URL is required for the worker')
 const redis = new RedisClientAdapter(config.redisUrl)
 await redis.connect()
 const search = new MeilisearchIndex({ url: config.searchUrl, index: config.searchIndex, apiKey: config.searchApiKey })
-const provider = config.geminiApiKey
+const gemini = config.geminiApiKey
   ? new GeminiProvider({ apiKey: config.geminiApiKey, model: config.geminiModel, timeoutMs: config.geminiTimeoutMs, maxAttempts: config.geminiMaxAttempts })
-  : new CortexAnalysisProvider(new SnowflakeCortexClient({ account: config.snowflakeAccount!, user: config.snowflakeUser!, password: config.snowflakePassword, token: config.snowflakeToken, tokenType: config.snowflakeTokenType, model: config.cortexModel, warehouse: config.snowflakeWarehouse!, database: config.snowflakeDatabase!, schema: config.snowflakeSchema!, timeoutMs: config.cortexTimeoutMs ?? 120_000 }), { model: config.cortexModel ?? 'llama3.1-70b', embeddingModel: config.cortexEmbeddingModel ?? 'snowflake-arctic-embed-m-v1.5', maxAttempts: config.cortexMaxAttempts ?? 3 })
+  : undefined
+const cortex = new CortexAnalysisProvider(new SnowflakeCortexClient({ account: config.snowflakeAccount!, user: config.snowflakeUser!, password: config.snowflakePassword, token: config.snowflakeToken, tokenType: config.snowflakeTokenType, model: config.cortexModel, warehouse: config.snowflakeWarehouse!, database: config.snowflakeDatabase!, schema: config.snowflakeSchema!, timeoutMs: config.cortexTimeoutMs ?? 120_000 }), { model: config.cortexModel ?? 'llama3.1-70b', embeddingModel: config.cortexEmbeddingModel ?? 'snowflake-arctic-embed-m-v1.5', maxAttempts: config.cortexMaxAttempts ?? 3 })
+const provider = new RoutedAiProvider(gemini ?? cortex, cortex)
 const delivery = new SearchEventDelivery(search)
 const outboxWorker = new OutboxWorker(outbox, delivery)
-const orchestrator = new AnalysisOrchestrator(repository, new AnalysisPipeline(source, derived, provider, undefined, new FfmpegMediaProcessor({ timeoutMs: config.requestTimeoutMs ?? 10_000, limits: { maxBytes: config.mediaMaxBytes ?? 25 * 1024 * 1024, maxDurationMs: 60 * 60 * 1000, maxFrames: 12 } })), 3)
+const orchestrator = new AnalysisOrchestrator(repository, new AnalysisPipeline(source, derived, provider, undefined, new FfmpegMediaProcessor({ timeoutMs: config.requestTimeoutMs ?? 10_000, limits: { maxBytes: config.mediaMaxBytes ?? 25 * 1024 * 1024, maxDurationMs: 60 * 60 * 1000, maxFrames: 12 } }), new OnnxClipImageTagger({ visionModelPath: '/app/models/image-tagger.onnx', textModelPath: '/app/models/text-model.onnx', tokenizerPath: '/app/models/tokenizer.json', tokenizerConfigPath: '/app/models/tokenizer-config.json', labels: ['cat', 'rabbit', 'dog', 'person', 'woman', 'man', 'headphones', 'microphone', 'board game', 'scrabble', 'food', 'car'] })), 3)
 const queue = new RedisJobQueue(redis, repository)
 const worker = new AnalysisWorker(queue, async (jobId) => { await orchestrator.process(jobId) })
 let stopping = false

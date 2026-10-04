@@ -30,8 +30,10 @@ export interface DerivedPost {
   version: number;
   sourceText: string;
   generatedText?: string;
+  generatedTextProvenance?: import("./contracts").Provenance;
   tags: string[];
   transcript?: string;
+  transcriptProvenance?: import("./contracts").Provenance;
   embedding?: number[];
   platform?: string;
   albumIds: string[];

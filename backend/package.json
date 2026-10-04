@@ -14,14 +14,16 @@
   "dependencies": {
     "@elysiajs/cors": "^1.4.2",
     "@elysiajs/openapi": "^1.4.16",
+    "@huggingface/tokenizers": "^0.2.0",
     "@scalar/types": "^0.22.4",
     "elysia": "^1.4.30",
     "mongodb": "^7.7.0",
+    "onnxruntime-node": "^1.30.0",
     "redis": "^6.3.0",
+    "sharp": "^0.35.5",
     "snowflake-sdk": "^3.4.0"
   },
   "devDependencies": {
-    "@scalar/types": "^0.22.4",
     "@types/bun": "^1.4.2",
     "prettier": "^3.9.9",
     "typescript": "7.0.2"
