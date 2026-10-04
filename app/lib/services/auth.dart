@@ -1,107 +1,122 @@
-import 'session_store.dart';
+import 'dart:convert';
 
-class GoogleAuthorization {
-  const GoogleAuthorization({
-    required this.issuer,
-    required this.audience,
-    required this.nonce,
-    required this.claims,
-  });
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
 
-  final String issuer;
-  final String audience;
-  final String nonce;
-  final Map<String, dynamic> claims;
-}
+const apiBaseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'http://10.0.2.2:3000',
+);
 
-abstract interface class AuthProvider {
-  Future<GoogleAuthorization?> authorize();
-}
+class AuthSession {
+  const AuthSession({required this.accountId, required this.email, required this.token});
 
-/// Adapter for the Google OAuth implementation currently under development.
-/// The final platform implementation only needs to return verified provider
-/// output; the rest of the app depends on this interface, not on OAuth SDKs.
-class PendingGoogleAuthProvider implements AuthProvider {
-  @override
-  Future<GoogleAuthorization?> authorize() async => null;
+  final String accountId;
+  final String email;
+  final String token;
+
+  factory AuthSession.fromJson(Map<String, dynamic> json) {
+    final account = json['account'];
+    final accountMap = account is Map<String, dynamic> ? account : null;
+    final accountId = accountMap?['id'];
+    final email = accountMap?['email'];
+    final token = json['token'];
+    if (accountId is! String || email is! String || token is! String) {
+      throw const AuthException('Backend returned an incomplete sign-in response.');
+    }
+    return AuthSession(accountId: accountId, email: email, token: token);
+  }
 }
 
 class GoogleAuthService {
   GoogleAuthService({
-    ApiAuthClient? api,
-    SessionStore? sessions,
-    AuthProvider? provider,
-  })  : api = api ?? ApiAuthClient(request: (_, __, ___, ____) async => <String, dynamic>{}),
-        sessions = sessions ?? MemorySessionStore(),
-        provider = provider ?? PendingGoogleAuthProvider();
+    this.baseUrl = apiBaseUrl,
+    this.serverClientId = '414871424622-6qao1i3h52737um7pi73riha5d9ra8gc.apps.googleusercontent.com',
+    http.Client? client,
+    FlutterSecureStorage? storage,
+    GoogleSignIn? googleSignIn,
+  })  : _client = client ?? http.Client(),
+        _storage = storage ?? const FlutterSecureStorage(),
+        _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
 
-  final ApiAuthClient api;
-  final SessionStore sessions;
-  final AuthProvider provider;
-  Session? _session;
+  static const _sessionKey = 'backend_session_token';
+  static const _accountIdKey = 'backend_account_id';
+  static const _emailKey = 'backend_account_email';
 
-  Session? get session => _session;
+  final String baseUrl;
+  final String serverClientId;
+  final http.Client _client;
+  final FlutterSecureStorage _storage;
+  final GoogleSignIn _googleSignIn;
+  AuthSession? _session;
+
+  AuthSession? get session => _session;
   bool get isSignedIn => _session != null;
   String? get email => _session?.email;
 
-  Future<void> restore() async => _session = await sessions.read();
+  Future<bool> restoreSession() async {
+    final token = await _storage.read(key: _sessionKey);
+    final accountId = await _storage.read(key: _accountIdKey);
+    final email = await _storage.read(key: _emailKey);
+    if (token == null || accountId == null || email == null) return false;
+    _session = AuthSession(accountId: accountId, email: email, token: token);
+    return true;
+  }
 
-  Future<Session> signIn() async {
-    final authorization = await provider.authorize();
-    if (authorization == null) {
-      throw const AuthException('Google sign-in is not available yet.');
+  Future<AuthSession> signIn() async {
+    await _googleSignIn.initialize(serverClientId: serverClientId);
+    final googleAccount = await _googleSignIn.authenticate();
+    final googleAuth = googleAccount.authentication;
+    final idToken = googleAuth.idToken;
+    if (idToken == null || idToken.isEmpty) {
+      throw const AuthException(
+        'Google did not return an ID token. Check that the Web OAuth client ID is configured as serverClientId.',
+      );
     }
-    final session = await api.exchangeGoogle(authorization);
+
+    final response = await _client.post(
+      Uri.parse('$baseUrl/auth/google'),
+      headers: {'content-type': 'application/json'},
+      body: jsonEncode({'idToken': idToken}),
+    );
+    if (response.statusCode >= 400) {
+      throw AuthException(_message(response.body, 'Google sign-in failed.'));
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw const AuthException('Backend returned an invalid sign-in response.');
+    }
+    final session = AuthSession.fromJson(decoded);
+    await _storage.write(key: _sessionKey, value: session.token);
+    await _storage.write(key: _accountIdKey, value: session.accountId);
+    await _storage.write(key: _emailKey, value: session.email);
     _session = session;
     return session;
   }
 
   Future<void> signOut() async {
-    final current = _session;
-    if (current != null) {
-      try {
-        await api.signOut(current.token);
-      } finally {
-        await sessions.clear();
-        _session = null;
-      }
-    } else {
-      await sessions.clear();
+    final token = _session?.token;
+    if (token != null) {
+      await _client.post(
+        Uri.parse('$baseUrl/auth/sign-out'),
+        headers: {'authorization': 'Bearer $token'},
+      );
     }
-  }
-}
-
-class ApiAuthClient {
-  ApiAuthClient({required this.request});
-  final Future<Map<String, dynamic>> Function(
-    String method,
-    String path,
-    Map<String, dynamic>? body,
-    String? token,
-  ) request;
-
-  Future<Session> exchangeGoogle(GoogleAuthorization authorization) async {
-    final result = await request('POST', '/auth/google', {
-      'issuer': authorization.issuer,
-      'audience': authorization.audience,
-      'nonce': authorization.nonce,
-      'claims': authorization.claims,
-    }, null);
-    final account = result['account'] as Map<String, dynamic>?;
-    final token = result['token'] as String?;
-    final accountId = account?['id'] as String?;
-    if (token == null || accountId == null) {
-      throw const AuthException('The server returned an invalid session.');
-    }
-    return Session(
-      token: token,
-      accountId: accountId,
-      email: account?['email'] as String?,
-    );
+    await _googleSignIn.signOut();
+    await _storage.delete(key: _sessionKey);
+    await _storage.delete(key: _accountIdKey);
+    await _storage.delete(key: _emailKey);
+    _session = null;
   }
 
-  Future<void> signOut(String token) async {
-    await request('POST', '/auth/sign-out', null, token);
+  String _message(String body, String fallback) {
+    try {
+      return (jsonDecode(body) as Map<String, dynamic>)['message'] as String? ?? fallback;
+    } catch (_) {
+      return fallback;
+    }
   }
 }
 

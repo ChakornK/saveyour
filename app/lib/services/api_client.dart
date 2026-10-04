@@ -1,239 +1,90 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
 import '../domain/models.dart';
-import 'auth.dart';
-import 'session_store.dart';
 
-class ApiClient implements AppRepository, AlbumRepository, ProfileRepository {
-  ApiClient({
-    http.Client? client,
-    this.baseUrl = const String.fromEnvironment(
-      'SAVEYOUR_API_BASE_URL',
-      defaultValue:
-          'https://heading-laboratory-implement-admission.trycloudflare.com',
-    ),
-    SessionStore? sessions,
-    this.timeout = const Duration(seconds: 15),
-  })  : _client = client ?? http.Client(),
-        sessions = sessions ?? MemorySessionStore();
+const apiBaseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'http://10.0.2.2:3000',
+);
+
+class ApiClient implements AppRepository {
+  ApiClient({http.Client? client, this.baseUrl = apiBaseUrl, this.authToken})
+    : _client = client ?? http.Client();
 
   final http.Client _client;
   final String baseUrl;
-  final SessionStore sessions;
-  final Duration timeout;
+  final String? authToken;
 
-  Future<Map<String, dynamic>> _request(
-    String method,
-    String path, {
-    Map<String, dynamic>? body,
-    Map<String, String>? query,
-    String? token,
-    Map<String, String>? extraHeaders,
-  }) async {
-    final session = token == null ? await sessions.read() : null;
-    final authToken = token ?? session?.token;
-    final headers = <String, String>{
-      'accept': 'application/json',
-      if (body != null) 'content-type': 'application/json',
-      if (authToken != null) 'authorization': 'Bearer $authToken',
-      if (session?.accountId != null) 'x-owner-id': session!.accountId,
-      ...?extraHeaders,
-    };
-    final uri = Uri.parse('$baseUrl$path').replace(
-      queryParameters: query == null || query.isEmpty ? null : query,
-    );
-    late http.Response response;
-    try {
-      switch (method) {
-        case 'GET':
-          response = await _client.get(uri, headers: headers).timeout(timeout);
-        case 'POST':
-          response = await _client
-              .post(uri, headers: headers, body: body == null ? null : jsonEncode(body))
-              .timeout(timeout);
-        case 'DELETE':
-          response = await _client.delete(uri, headers: headers).timeout(timeout);
-        default:
-          throw StateError('Unsupported HTTP method $method');
-      }
-    } on TimeoutException {
-      throw const ApiException(null, 'The request timed out. Check your connection and try again.');
-    } on http.ClientException {
-      throw const ApiException(null, 'The server could not be reached.');
-    }
-    Map<String, dynamic> decoded = <String, dynamic>{};
-    if (response.body.isNotEmpty) {
-      try {
-        decoded = (jsonDecode(response.body) as Map).cast<String, dynamic>();
-      } on FormatException {
-        throw ApiException(response.statusCode, 'The server returned invalid data.');
-      }
-    }
-    if (response.statusCode == 401 && authToken != null) {
-      await sessions.clear();
-    }
-    if (response.statusCode >= 400) {
-      throw ApiException(
-        response.statusCode,
-        decoded['message'] as String? ?? 'The request failed.',
-        code: decoded['code'] as String?,
-        requestId: decoded['requestId'] as String?,
-        field: decoded['field'] as String?,
-      );
-    }
-    return decoded;
-  }
+  Map<String, String> _headers([Map<String, String>? extra]) => {
+    if (authToken != null) 'authorization': 'Bearer $authToken',
+    ...?extra,
+  };
 
-  Future<List<SavedPost>> listPostsPage({String? cursor, int limit = 20}) async {
-    final body = await _request(
-      'GET',
-      '/captured-posts',
-      query: {
-        if (cursor != null) 'cursor': cursor,
-        'limit': '$limit',
-      },
-    );
+  @override
+  Future<List<SavedPost>> listPosts({String? query}) async {
+    final uri = Uri.parse('$baseUrl/posts')
+        .replace(queryParameters: query == null ? null : {'q': query});
+    final response = await _client.get(uri, headers: _headers());
+    if (response.statusCode >= 400)
+      throw ApiException(response.statusCode, 'Unable to load saved posts.');
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
     return (body['items'] as List<dynamic>? ?? const [])
-        .map((item) => _postFromJson((item as Map).cast<String, dynamic>()))
+        .map((item) => _postFromJson(item as Map<String, dynamic>))
         .toList();
   }
 
   @override
-  Future<List<SavedPost>> listPosts({String? query}) async {
-    final body = await _request(
-      'GET',
-      query == null || query.trim().isEmpty ? '/captured-posts' : '/posts',
-      query: {
-        if (query != null && query.trim().isNotEmpty) 'q': query,
-      },
-    );
-    final items = body['items'] as List<dynamic>? ?? const [];
-    return items.map((item) {
-      final value = (item as Map).cast<String, dynamic>();
-      return query == null || query.trim().isEmpty
-          ? _postFromJson(value)
-          : _postFromSearchJson((value['document'] as Map).cast<String, dynamic>());
-    }).toList();
-  }
-
-  Future<Session> exchangeGoogle(GoogleAuthorization authorization) async {
-    final result = await _request('POST', '/auth/google', body: {
-      'issuer': authorization.issuer,
-      'audience': authorization.audience,
-      'nonce': authorization.nonce,
-      'claims': authorization.claims,
-    });
-    final account = result['account'] as Map<String, dynamic>?;
-    final token = result['token'] as String?;
-    final accountId = account?['id'] as String?;
-    if (token == null || accountId == null) {
-      throw const ApiException(null, 'The server returned an invalid session.');
-    }
-    final session = Session(
-      token: token,
-      accountId: accountId,
-      email: account?['email'] as String?,
-    );
-    await sessions.write(session);
-    return session;
-  }
-
-  @override
   Future<void> saveLink(String url) async {
-    await _request('POST', '/capture', body: {'url': url}, extraHeaders: {
-      'idempotency-key': _idempotencyKey(),
-    });
+    final response = await _client.post(
+      Uri.parse('$baseUrl/capture'),
+      headers: _headers({'content-type': 'application/json'}),
+      body: jsonEncode({'url': url}),
+    );
+    if (response.statusCode >= 400)
+      throw ApiException(response.statusCode, 'Unable to save that link.');
   }
 
   @override
   Future<void> removePost(String id) async {
-    await _request('DELETE', '/captured-posts/${Uri.encodeComponent(id)}');
-  }
-
-  Future<SavedPost> getPost(String id) async => _postFromJson(
-        await _request('GET', '/captured-posts/${Uri.encodeComponent(id)}'),
-      );
-
-  Future<List<String>> suggestions(String query, {int limit = 10}) async {
-    final body = await _request('GET', '/v1/search/suggestions', query: {
-      'q': query,
-      'limit': '$limit',
-    });
-    return (body['suggestions'] as List<dynamic>? ?? const []).cast<String>();
+    final response = await _client.delete(Uri.parse('$baseUrl/posts/$id'), headers: _headers());
+    if (response.statusCode >= 400)
+      throw ApiException(response.statusCode, 'Unable to remove this post.');
   }
 
   @override
   Future<void> removeFromAlbum(String postId, String album) async {
-    throw const ApiException(null, 'Album endpoints are not available yet.');
+    final response = await _client.delete(
+      Uri.parse('$baseUrl/albums/${Uri.encodeComponent(album)}/posts/$postId'),
+      headers: _headers(),
+    );
+    if (response.statusCode >= 400)
+      throw ApiException(response.statusCode, 'Unable to update this album.');
   }
 
-  @override
-  Future<Album> createAlbum(String name) => throw UnimplementedError();
-  @override
-  Future<void> addToAlbum(String postId, String albumId) => throw UnimplementedError();
-  @override
-  Future<List<Album>> listAlbums({String query = '', Set<String> tags = const {}}) =>
-      throw UnimplementedError();
-  @override
-  Future<AlbumDetail> getAlbum(String albumId) => throw UnimplementedError();
-  @override
-  Future<UserProfile> getProfile() => throw UnimplementedError();
-  @override
-  Future<void> logOut() => sessions.clear();
-
   SavedPost _postFromJson(Map<String, dynamic> json) => SavedPost(
-        id: json['id'] as String,
-        title: json['title'] as String? ?? 'Saved post',
-        description: json['description'] as String? ?? '',
-        platform: _platform(json['platform'] as String?),
-        mediaKind: _mediaKind(json['mediaKind'] as String?),
-        thumbnailUrl: json['thumbnailUrl'] as String?,
-        username: json['username'] as String?,
-        albums: (json['albums'] as List<dynamic>? ?? const []).cast<String>(),
-        tags: (json['tags'] as List<dynamic>? ?? const []).cast<String>(),
-        analysisStatus: json['analysisStatus'] as String?,
-        sourceUrl: json['canonicalUrl'] as String?,
-        capturedAt: DateTime.tryParse(json['capturedAt'] as String? ?? ''),
-      );
-
-  SavedPost _postFromSearchJson(Map<String, dynamic> json) => SavedPost(
-        id: json['postId'] as String? ?? json['documentId'] as String,
-        title: json['title'] as String? ?? 'Saved post',
-        description: json['text'] as String? ?? '',
-        platform: _platform(json['platform'] as String?),
-        mediaKind: _mediaKind(((json['mediaKinds'] as List<dynamic>?)?.isNotEmpty ?? false)
-            ? (json['mediaKinds'] as List<dynamic>).first as String
-            : null),
-        tags: (json['tags'] as List<dynamic>? ?? const []).cast<String>(),
-        analysisStatus: json['analysisStatus'] as String?,
-        sourceUrl: json['canonicalUrl'] as String?,
-        capturedAt: DateTime.tryParse(json['capturedAt'] as String? ?? ''),
-      );
-
-  SourcePlatform _platform(String? value) => SourcePlatform.values.firstWhere(
-        (item) => item.name == value,
-        orElse: () => SourcePlatform.x,
-      );
-
-  MediaKind _mediaKind(String? value) => MediaKind.values.firstWhere(
-        (item) => item.name == value,
-        orElse: () => MediaKind.text,
-      );
-
-  String _idempotencyKey() => 'flutter-${DateTime.now().microsecondsSinceEpoch}';
+    id: json['id'] as String,
+    title: json['title'] as String? ?? 'Saved post',
+    description: json['description'] as String? ?? '',
+    platform: SourcePlatform.values.firstWhere(
+      (value) => value.name == json['platform'],
+      orElse: () => SourcePlatform.x,
+    ),
+    mediaKind: MediaKind.values.firstWhere(
+      (value) => value.name == json['mediaKind'],
+      orElse: () => MediaKind.text,
+    ),
+    thumbnailUrl: json['thumbnailUrl'] as String?,
+    username: json['username'] as String?,
+    albums: (json['albums'] as List<dynamic>? ?? const []).cast<String>(),
+  );
 }
 
 class ApiException implements Exception {
-  const ApiException(this.statusCode, this.message, {this.code, this.requestId, this.field});
-  final int? statusCode;
+  const ApiException(this.statusCode, this.message);
+  final int statusCode;
   final String message;
-  final String? code;
-  final String? requestId;
-  final String? field;
-  bool get isUnauthorized => statusCode == 401;
   @override
   String toString() => message;
 }

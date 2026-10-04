@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'domain/models.dart';
+import 'services/auth.dart';
 import 'theme/app_theme.dart';
 import 'widgets/brutalist_button.dart';
 import 'widgets/post_card.dart';
@@ -236,12 +237,21 @@ class _NestedNavigationBar extends StatelessWidget {
   );
 }
 
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key, required this.repository});
+class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key, required this.repository, this.auth});
   final ProfileRepository repository;
+  final GoogleAuthService? auth;
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  bool _signingIn = false;
+
   @override
   Widget build(BuildContext context) => FutureBuilder<UserProfile>(
-    future: repository.getProfile(),
+    future: widget.repository.getProfile(),
     builder: (context, snapshot) {
       if (!snapshot.hasData)
         return const Center(child: CircularProgressIndicator());
@@ -290,12 +300,57 @@ class ProfilePage extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           BrutalSurface(
-            child: BrutalistButton(
-              label: 'Log out',
-              icon: const Icon(Icons.logout),
-              variant: BrutalistButtonVariant.destructive,
-              onPressed: () => repository.logOut(),
-            ),
+            child: widget.auth?.isSignedIn == true
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Signed in as ${widget.auth?.email ?? 'Google account'}',
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 12),
+                      BrutalistButton(
+                        label: 'Log out',
+                        icon: const Icon(Icons.logout),
+                        variant: BrutalistButtonVariant.destructive,
+                        onPressed: () async {
+                          await widget.auth?.signOut();
+                          if (mounted) setState(() {});
+                        },
+                      ),
+                    ],
+                  )
+                : BrutalistButton(
+                    label: _signingIn ? 'Signing in…' : 'Continue with Google',
+                    icon: _signingIn
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.login),
+                    onPressed: _signingIn
+                        ? null
+                        : () async {
+                            setState(() => _signingIn = true);
+                            try {
+                              await widget.auth?.signIn().timeout(
+                                const Duration(seconds: 30),
+                                onTimeout: () => throw const AuthException(
+                                  'Google sign-in timed out. Check the backend connection and try again.',
+                                ),
+                              );
+                              if (mounted) setState(() {});
+                            } catch (error) {
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('$error')),
+                              );
+                            } finally {
+                              if (mounted) setState(() => _signingIn = false);
+                            }
+                          },
+                  ),
           ),
         ],
       );

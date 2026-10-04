@@ -3,15 +3,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'domain/models.dart';
-import 'services/api_client.dart';
-import 'services/session_store.dart';
+import 'services/auth.dart';
 import 'services/share_intent.dart';
 import 'theme/app_theme.dart';
 import 'widgets/post_card.dart';
 import 'widgets/post_detail_modal.dart';
 import 'screens.dart';
 
-void main() => runApp(const SaveYourTechApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const SaveYourTechApp());
+}
 
 class SaveYourTechApp extends StatelessWidget {
   const SaveYourTechApp({super.key});
@@ -30,17 +32,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final _sessionStore = SecureSessionStore();
-  late final ApiClient _repository;
-
-  @override
-  void initState() {
-    super.initState();
-    _repository = ApiClient(sessions: _sessionStore);
-    _load();
-    _shareIntents.start();
-    _shareSubscription = _shareIntents.links.listen(_showSaveDialogForUrl);
-  }
+  final _repository = MockAppRepository();
+  final _auth = GoogleAuthService();
   final _searchController = TextEditingController();
   final _shareIntents = ShareIntentService();
   StreamSubscription<String>? _shareSubscription;
@@ -48,11 +41,25 @@ class _HomePageState extends State<HomePage> {
   int _tab = 0;
 
   @override
+  void initState() {
+    super.initState();
+    _restoreAuth();
+    _load();
+    _shareIntents.start();
+    _shareSubscription = _shareIntents.links.listen(_showSaveDialogForUrl);
+  }
+
+  @override
   void dispose() {
     _shareSubscription?.cancel();
     _shareIntents.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _restoreAuth() async {
+    await _auth.restoreSession();
+    if (mounted) setState(() {});
   }
 
   Future<void> _load() async {
@@ -114,7 +121,7 @@ class _HomePageState extends State<HomePage> {
                 ? _homeContent()
                 : _tab == 1
                 ? AlbumsPage(repository: _repository, onOpenPost: _openPost)
-                : ProfilePage(repository: _repository),
+                : ProfilePage(repository: _repository, auth: _auth),
           ),
         ],
       ),

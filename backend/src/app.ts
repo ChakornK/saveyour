@@ -44,6 +44,7 @@ import { MongoCaptureRepository } from "./modules/capture/persistent-repository"
 import { CaptureService } from "./modules/capture/service";
 import { captureApiRoutes } from "./modules/capture/api-routes";
 import { RedisMediaDownloadQueue } from "./modules/media/download-queue";
+import { checkIntegrationHealth } from "./modules/analysis/health";
 
 export const createApp = (config: AppConfig) => {
   const useProduction = config.appEnv === "production";
@@ -211,7 +212,12 @@ export const createApp = (config: AppConfig) => {
           : {}),
       };
     })
-    .use(healthRoutes)
+    .use(healthRoutes(async () => checkIntegrationHealth({
+      tidb: async () => !config.integrationFlags.tidbPersistence || Boolean(config.tidbUrl),
+      redis: async () => !useProduction || Boolean(redis),
+      seaweedfs: async () => !useProduction || Boolean(config.seaweedfsEndpoint),
+      cortex: async () => !config.integrationFlags.cortexAnalysis || !useProduction || Boolean(config.geminiApiKey),
+    })))
     .use(analysisRoutes(orchestrator, repository, metrics))
     .use(captureRoutes(source, orchestrator))
     .use(searchRoutes(searchService, new TagSuggestionService(derivedStore)))

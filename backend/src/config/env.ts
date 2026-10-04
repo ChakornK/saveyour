@@ -14,8 +14,9 @@ export interface AppConfig {
   seaweedfsAccessKey?: string;
   seaweedfsSecretKey?: string;
   googleClientId?: string;
+  googleClientSecret?: string;
+  googleRedirectUri?: string;
   googleIssuer: string;
-  googleAudience?: string;
   authRequired: boolean;
   authTokens: Record<string, string>;
   mongoUri: string;
@@ -31,6 +32,16 @@ export interface AppConfig {
   workerConcurrency: number;
   ytDlpBinary: string;
   ytDlpTempDir: string;
+  tidbUrl: string;
+  tidbUser: string;
+  tidbPassword: string;
+  tidbDatabase: string;
+  integrationFlags: {
+    tidbPersistence: boolean;
+    tidbSearch: boolean;
+    cortexAnalysis: boolean;
+    cortexTranscription: boolean;
+  };
 }
 
 const positiveInteger = (
@@ -108,8 +119,9 @@ export const loadConfig = (
       ? { seaweedfsSecretKey: env.SEAWEEDFS_SECRET_KEY }
       : {}),
     ...(env.GOOGLE_CLIENT_ID ? { googleClientId: env.GOOGLE_CLIENT_ID } : {}),
+    ...(env.GOOGLE_CLIENT_SECRET ? { googleClientSecret: env.GOOGLE_CLIENT_SECRET } : {}),
+    ...(env.GOOGLE_REDIRECT_URI ? { googleRedirectUri: env.GOOGLE_REDIRECT_URI } : {}),
     googleIssuer: env.GOOGLE_ISSUER ?? "https://accounts.google.com",
-    ...(env.GOOGLE_AUDIENCE ? { googleAudience: env.GOOGLE_AUDIENCE } : {}),
     authRequired:
       env.AUTH_REQUIRED === "true" ||
       parseEnvironment(env.APP_ENV) === "production",
@@ -139,5 +151,15 @@ export const loadConfig = (
     ),
     ytDlpBinary: env.YTDLP_BINARY ?? "yt-dlp",
     ytDlpTempDir: env.YTDLP_TEMP_DIR ?? "/tmp/saveyour-media",
+    tidbUrl: env.TIDB_URL ?? "",
+    tidbUser: env.TIDB_USER ?? "",
+    tidbPassword: env.TIDB_PASSWORD ?? "",
+    tidbDatabase: env.TIDB_DATABASE ?? "saveyour_tech",
+    integrationFlags: {
+      tidbPersistence: env.TIDB_PERSISTENCE_ENABLED === "true",
+      tidbSearch: env.TIDB_SEARCH_ENABLED === "true",
+      cortexAnalysis: env.CORTEX_ANALYSIS_ENABLED !== "false",
+      cortexTranscription: env.CORTEX_TRANSCRIPTION_ENABLED !== "false",
+    },
   };
 };
