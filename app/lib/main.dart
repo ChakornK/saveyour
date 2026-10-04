@@ -47,7 +47,6 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _restoreAuth();
-    _load();
     _shareIntents.start();
     _shareSubscription = _shareIntents.links.listen(_showSaveDialogForUrl);
   }
@@ -62,7 +61,20 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _restoreAuth() async {
     await _auth.restoreSession();
+    if (_auth.isSignedIn) await _load();
     if (mounted) setState(() {});
+  }
+
+  Future<void> _signIn() async {
+    try {
+      await _auth.signIn();
+      if (mounted) setState(() {});
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$error')));
+      }
+    }
   }
 
   Future<void> _load() async {
@@ -88,6 +100,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_auth.isSignedIn) return _WelcomePage(onContinue: _signIn);
     final wide = MediaQuery.sizeOf(context).width >= 760;
     return Scaffold(
       appBar: AppBar(
@@ -289,6 +302,49 @@ class _HomePageState extends State<HomePage> {
             .showSnackBar(SnackBar(content: Text('Removed from $album')));
       }
     },
+  );
+}
+
+class _WelcomePage extends StatelessWidget {
+  const _WelcomePage({required this.onContinue});
+  final VoidCallback onContinue;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: BrutalSurface(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'saveyour.tech',
+                    style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Save the internet you want to remember.',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 28),
+                  FilledButton.icon(
+                    onPressed: onContinue,
+                    icon: const Icon(Icons.login),
+                    label: const Text('Continue with Google'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
   );
 }
 

@@ -178,7 +178,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     await tester.pumpWidget(const SaveYourTechApp());
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.text('Continue with Google'), findsOneWidget);
     addTearDown(() {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
