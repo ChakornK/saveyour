@@ -9,7 +9,6 @@ services:
       MONGO_DATABASE: saveyour-tech
       REDIS_URL: redis://redis:6379
       SEARCH_URL: http://meilisearch:7700
-      SEARCH_API_KEY: ${MEILI_MASTER_KEY:-change-this-meilisearch-key}
       SEAWEEDFS_ENDPOINT: http://seaweedfs:8333
       SEAWEEDFS_BUCKET: saveyour-tech
       GEMINI_API_KEY: ${GEMINI_API_KEY:-local-development-key}
@@ -31,7 +30,6 @@ services:
       MONGO_DATABASE: saveyour-tech
       REDIS_URL: redis://redis:6379
       SEARCH_URL: http://meilisearch:7700
-      SEARCH_API_KEY: ${MEILI_MASTER_KEY:-change-this-meilisearch-key}
       SEAWEEDFS_ENDPOINT: http://seaweedfs:8333
       SEAWEEDFS_BUCKET: saveyour-tech
       GEMINI_API_KEY: ${GEMINI_API_KEY:-local-development-key}
