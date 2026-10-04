@@ -35,6 +35,7 @@ export class SqlTiDBIntegrationPort implements TiDBIntegrationPort {
       const postId = randomUUID();
       await tx.query("INSERT INTO posts (id, owner_id, canonical_url, created_at) VALUES (?, ?, ?, ?)", [postId, input.ownerId, input.canonicalUrl, now]);
       await tx.query("INSERT INTO analysis_jobs (id, owner_id, post_id, correlation_id, idempotency_key, schema_version, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'queued', ?, ?)", [jobId, input.ownerId, postId, correlationId, input.analysis.idempotencyKey, input.analysis.schemaVersion, now, now]);
+      await tx.query("INSERT INTO analysis_job_context (job_id, owner_id, post_id, schema_version, correlation_id, idempotency_key, post_version, requested_stages, media, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [jobId, input.ownerId, postId, input.analysis.schemaVersion, correlationId, input.analysis.idempotencyKey, 1, JSON.stringify(input.analysis.requestedStages), JSON.stringify(input.media), now]);
       await tx.query("INSERT INTO analysis_outbox (event_id, job_id, owner_id, event_type, correlation_id, idempotency_key, payload, created_at) VALUES (?, ?, ?, 'analysis.requested', ?, ?, ?, ?)", [randomUUID(), jobId, input.ownerId, correlationId, input.analysis.idempotencyKey, JSON.stringify(input), now]);
     });
     return { jobId, idempotencyKey: input.analysis.idempotencyKey, correlationId, replayed: false };
